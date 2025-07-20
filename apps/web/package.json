@@ -20,9 +20,10 @@
     "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.8",
     "@remix-run/serve": "^2.16.8",
+    "@uiw/react-textarea-code-editor": "^3.1.1",
+    "docster-profiles": "*",
     "isbot": "4",
     "react": "18",
-    "react-dom": "18",
-    "docster-profiles": "*"
+    "react-dom": "18"
   }
 }

@@ -1,4 +1,8 @@
 import { data } from "@remix-run/node";
+import {
+  processDocumentsWithAI,
+  fallbackProcessing,
+} from "../lib/googleai.server.js";
 import { Proposal as ProposalProfile } from "docster-profiles";
 
 export async function action({ request }) {
@@ -13,101 +17,104 @@ export async function action({ request }) {
       );
     }
 
-    // Process files (mock implementation)
-    const processedFiles = [];
+    // Instantiate selected Profile
+    const profile = new ProposalProfile();
 
+    // Validate files
     for (const file of files) {
-      if (file instanceof File) {
-        // Sample code to handle file (in real implementation you'd process the PDF)
-        console.log(`Processing file: ${file.name}, size: ${file.size} bytes`);
+      if (!(file instanceof File)) {
+        return data(
+          { success: false, error: "Invalid file format" },
+          { status: 400 }
+        );
+      }
 
-        // You could read file content here if needed:
-        // const arrayBuffer = await file.arrayBuffer();
-        // const buffer = Buffer.from(arrayBuffer);
+      // Check file type against accepted types in ProposalProfile
+      if (!profile.acceptedFileTypes.includes(file.type)) {
+        return data(
+          {
+            success: false,
+            error: `File ${file.name} type ${
+              file.type
+            } is not supported. Accepted types: ${profile.acceptedFileTypes.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
 
-        processedFiles.push({
-          filename: file.name,
-          size: file.size,
-          type: file.type,
-          lastModified: new Date(file.lastModified).toISOString(),
-        });
+      // Check file size (10MB limit)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        return data(
+          {
+            success: false,
+            error: `File ${file.name} is too large. Maximum file size is 10MB.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Check if file is empty
+      if (file.size === 0) {
+        return data(
+          {
+            success: false,
+            error: `File ${file.name} is empty.`,
+          },
+          { status: 400 }
+        );
       }
     }
 
-    // Generate mock data based on uploaded files
-    const mockJsonData = {
-      documents: processedFiles.map((file, index) => ({
-        id: index + 1,
-        filename: file.filename,
-        title: file.filename.replace(/\.[^/.]+$/, ""), // Remove extension
-        content: `This is the extracted content from ${file.filename}. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`,
-        metadata: {
-          originalFilename: file.filename,
-          fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-          pages: Math.floor(Math.random() * 20) + 1,
-          words: Math.floor(Math.random() * 5000) + 500,
-          characters: Math.floor(Math.random() * 25000) + 2500,
-          created: new Date().toISOString().split("T")[0],
-          processed: new Date().toISOString(),
-          language: "en",
-          encoding: "UTF-8",
-        },
-        extractedData: {
-          headings: [
-            `Introduction to ${file.filename.replace(/\.[^/.]+$/, "")}`,
-            "Key Findings",
-            "Analysis",
-            "Conclusions",
-          ],
-          tables: Math.floor(Math.random() * 5),
-          images: Math.floor(Math.random() * 10),
-          links: Math.floor(Math.random() * 15),
-        },
-      })),
-      summary: {
-        totalFiles: processedFiles.length,
-        totalPages: processedFiles.reduce(
-          (sum, file, index) => sum + Math.floor(Math.random() * 20) + 1,
-          0
-        ),
-        totalSize: processedFiles.reduce((sum, file) => sum + file.size, 0),
-        processedAt: new Date().toISOString(),
-        processingTime: `${Math.floor(Math.random() * 30) + 5}s`,
-      },
-    };
+    console.log(
+      `Processing ${files.length} files with Google AI using ${profile.profileName} profile`
+    );
 
-    // Generate CSV data (flattened version for CSV format)
-    const mockCsvData = processedFiles.map((file, index) => ({
-      id: index + 1,
-      filename: file.filename,
-      title: file.filename.replace(/\.[^/.]+$/, ""),
-      fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-      pages: Math.floor(Math.random() * 20) + 1,
-      words: Math.floor(Math.random() * 5000) + 500,
-      characters: Math.floor(Math.random() * 25000) + 2500,
-      tables: Math.floor(Math.random() * 5),
-      images: Math.floor(Math.random() * 10),
-      links: Math.floor(Math.random() * 15),
-      language: "en",
-      processed: new Date().toISOString().split("T")[0],
-      status: "completed",
-    }));
+    // Process files with Google AI and ProposalProfile
+    let processedData;
+    try {
+      processedData = await processDocumentsWithAI(files, profile);
+    } catch (aiError) {
+      console.error("Google AI processing failed:", aiError);
 
-    // Return both formats
+      // Fallback to basic processing if AI fails
+      console.log("Falling back to basic processing...");
+      processedData = await fallbackProcessing(files);
+    }
+
+    // Return the structured data according to ProposalProfile schema
     const responseData = {
-      json: mockJsonData,
-      csv: mockCsvData,
+      json: processedData.json,
+      csv: processedData.csv,
     };
 
     return data({
       success: true,
       data: responseData,
-      message: `Successfully processed ${processedFiles.length} file(s)`,
+      message: `Successfully processed ${files.length} file(s) using ${profile.profileName} profile`,
+      profileUsed: profile.profileName,
+      processingTime: processedData.processingTime,
+      totalFiles: processedData.totalFiles,
     });
   } catch (error) {
     console.error("File upload error:", error);
+
+    // Check if it's a Google AI API key error
+    if (error.message.includes("GOOGLE_AI_API_KEY")) {
+      return data(
+        {
+          success: false,
+          error:
+            "Google AI service is not configured. Please check API key configuration.",
+        },
+        { status: 500 }
+      );
+    }
+
     return data(
-      { success: false, error: "Failed to process files" },
+      { success: false, error: "Failed to process files: " + error.message },
       { status: 500 }
     );
   }
