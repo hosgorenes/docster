@@ -184,13 +184,13 @@ export default function ResultsViewer({ data, format }) {
         </div>
         {format === "json" && Array.isArray(displayData) && (
           <div className="mt-1">
-            <span>Proposals: {displayData.length}</span>
+            <span>Documents: {displayData.length}</span>
           </div>
         )}
         {format === "csv" && typeof displayData === "string" && (
           <div className="mt-1">
             <span>Rows: {Math.max(0, displayData.split("\n").length - 1)}</span>
-            <span className="ml-4">
+            <span className="ml-2">
               Columns: {parseCsvToTable(displayData)?.headers?.length || 0}
             </span>
           </div>
