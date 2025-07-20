@@ -12,8 +12,6 @@ export default function App() {
         />
         <link
           rel="stylesheet"
-          as="style"
-          onLoad="this.rel='stylesheet'"
           href="https://fonts.googleapis.com/css2?display=swap&family=Inter%3Awght%40400%3B500%3B700%3B900&family=Noto+Sans%3Awght%40400%3B500%3B700%3B900"
         />
 

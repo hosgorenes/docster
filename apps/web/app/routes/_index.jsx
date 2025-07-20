@@ -1,20 +1,60 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useFetcher } from "@remix-run/react";
 import {
   Header,
   Sidebar,
   TabNavigation,
   ResultsPanel,
+  Toast,
 } from "../components";
 
 export default function Index() {
-  const [files, setFiles] = useState([
-    { name: "Document 1.pdf", size: "2.5 MB" },
-    { name: "Report 2024.pdf", size: "1.8 MB" },
-  ]);
+  const [files, setFiles] = useState([]);
   const [activeTab, setActiveTab] = useState("json");
-  const [hasResults, setHasResults] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [processedData, setProcessedData] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const fetcher = useFetcher();
+
+  const isLoading =
+    fetcher.state === "submitting" || fetcher.state === "loading";
+  const responseData = fetcher.data?.data || fetcher.data;
+  const hasResults = responseData && responseData.success;
+  const processedData = responseData?.data;
+  const error =
+    responseData && !responseData.success ? responseData.error : null;
+
+  // Handle fetcher response and errors
+  useEffect(() => {
+    console.log("Fetcher state:", fetcher.state, "Raw data:", fetcher.data);
+    console.log("Response data:", responseData);
+
+    if (responseData) {
+      if (responseData.success) {
+        setSuccessMessage(
+          responseData.message || "Files processed successfully!"
+        );
+        // Clear files after successful processing
+        setFiles([]);
+
+        // Clear success message after 5 seconds
+        const timer = setTimeout(() => {
+          setSuccessMessage("");
+        }, 5000);
+
+        return () => clearTimeout(timer);
+      } else {
+        console.error("Processing failed:", responseData.error);
+      }
+    }
+
+    // Handle network or submission errors
+    if (
+      fetcher.state === "idle" &&
+      fetcher.data === undefined &&
+      files.length > 0
+    ) {
+      console.warn("Submission completed but no data received");
+    }
+  }, [fetcher.data, fetcher.state, responseData]);
 
   const handleFileUpload = (newFiles) => {
     // Convert File objects to our file format and add to existing files
@@ -35,32 +75,16 @@ export default function Index() {
   const handleProcessFiles = () => {
     if (files.length === 0) return;
 
-    setIsLoading(true);
-    setHasResults(false);
+    const formData = new FormData();
+    files.forEach((fileData) => {
+      formData.append("files", fileData.file);
+    });
 
-    // Simulate file processing logic
-    console.log("Processing files:", files);
-
-    // Simulate processing with a timeout
-    setTimeout(() => {
-      // Mock processed data based on uploaded files
-      const mockData = {
-        documents: files.map((file, index) => ({
-          id: index + 1,
-          title: file.name.replace(".pdf", ""),
-          content: `This is the extracted content from ${file.name}`,
-          metadata: {
-            pages: Math.floor(Math.random() * 20) + 1,
-            created: new Date().toISOString().split("T")[0],
-            size: file.size,
-          },
-        })),
-      };
-
-      setProcessedData(mockData);
-      setIsLoading(false);
-      setHasResults(true);
-    }, 2000);
+    fetcher.submit(formData, {
+      method: "POST",
+      action: "/api/upload",
+      encType: "multipart/form-data",
+    });
   };
 
   const handleTabChange = (tabId) => {
@@ -70,6 +94,13 @@ export default function Index() {
   return (
     <>
       <Header />
+
+      <Toast
+        message={successMessage}
+        type="success"
+        duration={5000}
+        onClose={() => setSuccessMessage("")}
+      />
 
       <div className="gap-1 px-6 flex flex-1 justify-center py-5">
         <Sidebar
@@ -81,16 +112,14 @@ export default function Index() {
         />
 
         <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
-          <TabNavigation
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-          />
+          <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
           <ResultsPanel
             hasResults={hasResults}
             isLoading={isLoading}
             data={processedData}
             activeTab={activeTab}
+            error={error}
           />
         </div>
       </div>

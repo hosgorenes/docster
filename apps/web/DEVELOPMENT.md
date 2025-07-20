@@ -151,32 +151,37 @@ The file upload system uses:
 - PDF file filtering
 - Mock processing simulation
 
-### Extending File Upload
+### File Upload Implementation
 
-To add real file processing:
+The application now includes a complete file upload system:
 
-1. **Create API Route**
+1. **API Route** (`app/routes/api.upload.jsx`)
 ```jsx
-// app/routes/api.upload.jsx
 import { json } from '@remix-run/node';
 
 export async function action({ request }) {
   const formData = await request.formData();
   const files = formData.getAll('files');
   
-  // Process files here
-  const results = await processFiles(files);
+  // Process files and return mock data
+  const mockData = generateMockDataFromFiles(files);
   
-  return json({ success: true, data: results });
+  return json({
+    success: true,
+    data: { json: jsonData, csv: csvData },
+    message: `Successfully processed ${files.length} file(s)`
+  });
 }
 ```
 
-2. **Update Component**
+2. **Client Implementation** (`routes/_index.jsx`)
 ```jsx
-// In routes/_index.jsx
 import { useFetcher } from '@remix-run/react';
 
 const fetcher = useFetcher();
+const isLoading = fetcher.state === "submitting";
+const hasResults = fetcher.data && fetcher.data.success;
+const processedData = fetcher.data?.data;
 
 const handleProcessFiles = () => {
   const formData = new FormData();
@@ -193,17 +198,18 @@ const handleProcessFiles = () => {
 ## Data Flow Architecture
 
 ### Current Flow
-1. User uploads files → `FileUploadArea`
+1. User uploads files → `FileUploadArea` (with validation)
 2. Files stored in route state → `_index.jsx`
-3. User clicks process → Mock processing simulation
-4. Results displayed → `ResultsViewer`
+3. User clicks process → `useFetcher` submits to `/api/upload`
+4. Server generates mock data → Returns JSON and CSV formats
+5. Results displayed → `ResultsViewer` with download/copy functionality
+6. Success message shown → Files cleared from state
 
-### Production Flow
-1. User uploads files → `FileUploadArea`
-2. Files stored locally → Route state
-3. User clicks process → API call to backend
-4. Backend processes PDFs → Returns structured data
-5. Results displayed → `ResultsViewer`
+### Key Features
+- **File validation**: PDF type, size limits (10MB), empty file checks
+- **Real-time feedback**: Loading states, error handling, success messages
+- **Data formats**: Both JSON and CSV generated server-side
+- **User experience**: Drag & drop, file removal, processing feedback
 
 ## Testing Strategy
 
@@ -234,14 +240,16 @@ test('renders upload area', () => {
 
 ### Current Optimizations
 - Component code splitting via Remix
-- Lazy loading of large components
-- Efficient re-renders with proper state management
+- Server-side processing with `useFetcher`
+- Efficient state management with automatic cleanup
+- File validation to prevent unnecessary processing
 
 ### Future Optimizations
-- Implement virtual scrolling for large file lists
-- Add file upload progress indicators
-- Implement client-side caching
-- Optimize bundle size with tree shaking
+- Implement file upload progress indicators
+- Add chunked file uploads for large files
+- Implement client-side caching of results
+- Add real PDF processing with OCR capabilities
+- Implement batch processing for multiple files
 
 ## Deployment
 
@@ -267,10 +275,11 @@ API_BASE_URL=https://api.docster.com
 ## Common Development Tasks
 
 ### Adding New File Format Support
-1. Update file filtering in `FileUploadArea.jsx`
+1. Update file validation in `FileUploadArea.jsx`
 2. Add new tab in `TabNavigation.jsx`
-3. Extend formatter in `ResultsViewer.jsx`
-4. Update processing logic
+3. Extend server-side processing in `api.upload.jsx`
+4. Update formatter in `ResultsViewer.jsx`
+5. Test upload and processing workflow
 
 ### Styling Updates
 1. Modify Tailwind classes in components
@@ -279,20 +288,29 @@ API_BASE_URL=https://api.docster.com
 4. Maintain accessibility standards
 
 ### API Integration
-1. Create route handlers in `app/routes/api/`
-2. Update component to use `useFetcher` or `useLoaderData`
-3. Handle loading and error states
-4. Add proper TypeScript types
+1. File upload API already implemented in `app/routes/api.upload.jsx`
+2. Components use `useFetcher` for form submission
+3. Loading, error, and success states handled
+4. Mock data generation demonstrates real processing patterns
+5. Ready for production PDF processing integration
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Component not updating**: Check state management and prop passing
+**File upload not working**: Check FormData and endpoint
 ```jsx
-// Ensure state updates trigger re-renders
-setFiles(prev => [...prev, newFile]); // ✅ Good
-setFiles([...files, newFile]); // ⚠️ May cause stale closure
+// Ensure files are properly attached
+const formData = new FormData();
+files.forEach(file => formData.append('files', file.file)); // ✅ Good
+formData.append('files', files); // ❌ Wrong - sends array
+```
+
+**Component not updating**: Check fetcher state management
+```jsx
+// Use fetcher data properly
+const hasResults = fetcher.data && fetcher.data.success; // ✅ Good
+const hasResults = fetcher.data.success; // ❌ May cause errors
 ```
 
 **Styling not applied**: Verify Tailwind classes and build process
@@ -304,8 +322,15 @@ npm run dev
 **Route not found**: Check file naming in `app/routes/`
 ```
 about.jsx → /about
-api.upload.jsx → /api/upload
+api.upload.jsx → /api/upload (handles POST requests)
 posts.$slug.jsx → /posts/[dynamic]
+```
+
+**File validation errors**: Check file type and size
+```jsx
+// Proper file validation
+if (file.type !== "application/pdf") return false;
+if (file.size > 10 * 1024 * 1024) return false; // 10MB limit
 ```
 
 ### Debug Tools
