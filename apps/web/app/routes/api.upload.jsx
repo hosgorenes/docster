@@ -3,7 +3,10 @@ import {
   processDocumentsWithAI,
   fallbackProcessing,
 } from "../lib/googleai.server.js";
-import { Proposal as ProposalProfile } from "docster-profiles";
+import {
+  Proposal as ProposalProfile,
+  HVAC as HVACProfile,
+} from "docster-profiles";
 
 export async function action({ request }) {
   try {
@@ -18,7 +21,7 @@ export async function action({ request }) {
     }
 
     // Instantiate selected Profile
-    const profile = new ProposalProfile();
+    const profile = new HVACProfile();
 
     // Validate files
     for (const file of files) {
