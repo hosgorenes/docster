@@ -1,0 +1,27 @@
+{
+  "name": "web",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {     
+    "build": "remix vite:build",
+    "dev": "remix vite:dev",
+    "start": "remix-serve ./build/server/index.js"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "^2.16.8",
+    "@types/bun": "latest",
+    "vite": "^7.0.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@remix-run/node": "^2.16.8",
+    "@remix-run/react": "^2.16.8",
+    "@remix-run/serve": "^2.16.8",
+    "isbot": "4",
+    "react": "18",
+    "react-dom": "18"
+  }
+}

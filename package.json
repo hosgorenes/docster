@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "@remix-run/node": "^2.16.8",
+    "@remix-run/react": "^2.16.8",
+    "@remix-run/serve": "^2.16.8",
+    "isbot": "4",
+    "react": "18",
+    "react-dom": "18"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "^2.16.8",
+    "turbo": "^2.5.5",
+    "vite": "^7.0.5"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "packageManager": "bun@1.2.0"
+}
