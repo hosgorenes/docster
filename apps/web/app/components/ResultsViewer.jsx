@@ -1,39 +1,40 @@
-import React from "react";
-
 export default function ResultsViewer({ data, format }) {
   const formatJsonData = (obj) => {
     return JSON.stringify(obj, null, 2);
   };
 
-  const formatCsvData = (data) => {
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      return "No data available";
-    }
+  const parseCsvToTable = (csvString) => {
+    if (!csvString || typeof csvString !== "string") return null;
 
-    // Get headers from first object
-    const headers = Object.keys(data[0]);
+    const lines = csvString.trim().split("\n");
+    if (lines.length === 0) return null;
 
-    // Create CSV content
-    const csvRows = [
-      headers.join(","), // Header row
-      ...data.map((row) =>
-        headers
-          .map((header) => {
-            const value = row[header];
-            // Escape commas and quotes in CSV values
-            if (
-              typeof value === "string" &&
-              (value.includes(",") || value.includes('"'))
-            ) {
-              return `"${value.replace(/"/g, '""')}"`;
-            }
-            return value;
-          })
-          .join(",")
-      ),
-    ];
+    // Parse CSV with basic comma splitting (handles simple cases)
+    const parseRow = (row) => {
+      const result = [];
+      let current = "";
+      let inQuotes = false;
 
-    return csvRows.join("\n");
+      for (let i = 0; i < row.length; i++) {
+        const char = row[i];
+
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === "," && !inQuotes) {
+          result.push(current.trim());
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseRow(lines[0]);
+    const rows = lines.slice(1).map(parseRow);
+
+    return { headers, rows };
   };
 
   // Extract the correct data based on format
@@ -49,10 +50,10 @@ export default function ResultsViewer({ data, format }) {
     );
   }
 
+  // For CSV, data is already a string from server-side conversion
+  // For JSON, format it nicely
   const formattedData =
-    format === "json"
-      ? formatJsonData(displayData)
-      : formatCsvData(displayData);
+    format === "json" ? formatJsonData(displayData) : displayData; // CSV is already formatted as string
 
   const handleDownload = () => {
     const blob = new Blob([formattedData], {
@@ -124,13 +125,55 @@ export default function ResultsViewer({ data, format }) {
 
       {/* Data Display */}
       <div className="relative">
-        <pre
-          className={`bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-auto max-h-96 ${
-            format === "json" ? "language-json" : "language-csv"
-          }`}
-        >
-          <code className="text-gray-800 font-mono">{formattedData}</code>
-        </pre>
+        {format === "csv" ? (
+          // CSV Table Display
+          (() => {
+            const tableData = parseCsvToTable(formattedData);
+            return tableData ? (
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="overflow-auto max-h-96">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {tableData.headers.map((header, index) => (
+                          <th
+                            key={index}
+                            className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
+                          >
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {tableData.rows.map((row, rowIndex) => (
+                        <tr key={rowIndex} className="hover:bg-gray-50">
+                          {row.map((cell, cellIndex) => (
+                            <td
+                              key={cellIndex}
+                              className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200 last:border-r-0 whitespace-nowrap"
+                            >
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <pre className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-auto max-h-96">
+                <code className="text-gray-800 font-mono">{formattedData}</code>
+              </pre>
+            );
+          })()
+        ) : (
+          // JSON Display
+          <pre className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-auto max-h-96 language-json">
+            <code className="text-gray-800 font-mono">{formattedData}</code>
+          </pre>
+        )}
       </div>
 
       {/* Data Summary */}
@@ -139,14 +182,17 @@ export default function ResultsViewer({ data, format }) {
           <span>Format: {format.toUpperCase()}</span>
           <span>Size: {new Blob([formattedData]).size} bytes</span>
         </div>
-        {format === "json" && displayData.documents && (
+        {format === "json" && Array.isArray(displayData) && (
           <div className="mt-1">
-            <span>Documents: {displayData.documents.length}</span>
+            <span>Proposals: {displayData.length}</span>
           </div>
         )}
-        {format === "csv" && Array.isArray(displayData) && (
+        {format === "csv" && typeof displayData === "string" && (
           <div className="mt-1">
-            <span>Records: {displayData.length}</span>
+            <span>Rows: {Math.max(0, displayData.split("\n").length - 1)}</span>
+            <span className="ml-4">
+              Columns: {parseCsvToTable(displayData)?.headers?.length || 0}
+            </span>
           </div>
         )}
       </div>
