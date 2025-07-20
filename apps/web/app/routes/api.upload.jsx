@@ -1,4 +1,5 @@
 import { data } from "@remix-run/node";
+import { Proposal as ProposalProfile } from "docster-profiles";
 
 export async function action({ request }) {
   try {
