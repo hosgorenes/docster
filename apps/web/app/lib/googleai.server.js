@@ -15,7 +15,7 @@ function initializeGoogleAI() {
   return new ChatGoogleGenerativeAI({
     model: "gemini-2.5-pro",
     temperature: 0.3,
-    maxOutputTokens: 4000,
+    maxOutputTokens: 10000,
     apiKey: apiKey,
   });
 }
