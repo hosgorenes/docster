@@ -18,6 +18,7 @@ export default function Index() {
     fetcher.state === "submitting" || fetcher.state === "loading";
   const responseData = fetcher.data?.data || fetcher.data;
   const hasResults = responseData && responseData.success;
+  // Use server-provided data for both JSON and CSV
   const processedData = responseData?.data;
   const error =
     responseData && !responseData.success ? responseData.error : null;
