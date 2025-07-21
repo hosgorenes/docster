@@ -6,3 +6,5 @@ services:
     container_name: web
     command: start --filter=./**/web -- --production
     restart: unless-stopped
+    environment:
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
