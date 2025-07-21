@@ -21,7 +21,7 @@ export async function action({ request }) {
     }
 
     // Instantiate selected Profile
-    const profile = new HVACProfile();
+    const profile = new ProposalProfile();
 
     // Validate files
     for (const file of files) {

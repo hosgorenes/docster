@@ -6,18 +6,43 @@ export class Proposal implements IProfile {
   public acceptedFileTypes = ["application/pdf"];
   public providers = ["GoogleAI"];
   public prompt = `
-    Attached are proposals or their agreements, extract the following information and return them as a JSON payload.
+    You are provided with documents that are either proposals or agreements.
 
-    - Vendor name: Vendor is the person or legal entity who provides the services. Don't confuse it with the entity the services are provided for. Don't return unless stated clearly.
-    - Agreement name
-    - Value of the agreement or proposal: Unless present return 0 (zero)
-    - Currency of the agreement or proposal: Currencies are 2 (two) or 3 (three) letter values. That are often mentioned close the financial values.
+    Your task is to extract key commercial information and return it in structured JSON format, following the rules below.
 
-    Each proposal or agreement can contain multiple products, in that case include an object array in the response json and specify each ones price individually. Prices should always be a number and set to 0 (zero) if not present.
-    If each product has a special conditipon include that in a separate property. Unless present set it to null.
-    If there are multiple products the sum value of the proposal should match the sum of individual products.
+    Fields to Extract:
 
-    All textual data should be returned in their original language; no translation should be done.
+    1. Vendor Name
+    The vendor is the person or legal entity providing the services.
+    Do not confuse the vendor with the client or the party receiving the services.
+    Only return the vendor name if it is explicitly stated in the document.
+
+    2. Agreement or Proposal Name
+    Total Value of the Agreement/Proposal
+    If not present, return 0.
+    Must always be a numeric value (no formatting or symbols).
+
+    3. Currency
+    A 2- or 3-letter currency code (e.g., USD, EUR, TRY, TL).
+    Typically located near financial values.
+    If not found, return null.
+
+    Product-Level Breakdown:
+
+    If the document includes multiple products, extract them into an array.
+    Each product should include:
+
+    - Name (if available),
+    - Price: a numeric value (set to 0 if not provided), ignore the discounts displayed as products with negative price values.
+    - Remarks: a short string (e.g., delivery terms, payment timing), or null if not present.
+
+    The sum of all product prices must match the total value of the proposal/agreement.
+
+    Additional Notes:
+
+    - Return all text in its original language — no translations.
+    - If a value is not explicitly stated, follow the fallback rule (e.g., 0 or null as specified).
+    - Ensure consistency and numerical accuracy in totals and product breakdowns.
   `;
   public schema = z.array(
     z.object({
