@@ -1,4 +1,5 @@
 {
+  "name": "docster",
   "dependencies": {
     "@langchain/core": "^0.3.66",
     "@langchain/google-genai": "^0.2.15",
