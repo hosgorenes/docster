@@ -1,5 +1,6 @@
 {
   "$schema": "https://turborepo.com/schema.json",
+  "globalEnv": ["GOOGLE_AI_API_KEY"],
   "tasks": {
     "build": {
       "outputs": ["build/**"]
