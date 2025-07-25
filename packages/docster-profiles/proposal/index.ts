@@ -23,9 +23,14 @@ export class Proposal implements IProfile {
     Must always be a numeric value (no formatting or symbols).
 
     3. Currency
-    A 2- or 3-letter currency code (e.g., USD, EUR, TRY, TL).
+    A 2-letter or 3-letter currency code (e.g., USD, EUR, TRY, TL).
     Typically located near financial values.
     If not found, return null.
+
+    4. Total Value of the Agreement/Proposal
+    Only return a total value if it is explicitly stated as the total or lump sum for the agreement.
+    Do not calculate the total by summing up per-product prices unless the document clearly specifies quantities or a full-package value.
+    If no total is clearly stated, return 0.
 
     Product-Level Breakdown:
 
@@ -33,10 +38,15 @@ export class Proposal implements IProfile {
     Each product should include:
 
     - Name (if available),
-    - Price: a numeric value (set to 0 if not provided), ignore the discounts displayed as products with negative price values.
+    - Price: a numeric value (set to 0 if not provided).
     - Remarks: a short string (e.g., delivery terms, payment timing), or null if not present.
 
-    The sum of all product prices must match the total value of the proposal/agreement.
+    Important Notes on Product Extraction:
+
+    - Prices mentioned alongside descriptions of different services/tasks are typically per-product values — not full agreement totals.
+    - If multiple services or deliverables are listed with separate prices, treat each one as a distinct product.
+    - Ignore discount lines or negative price entries.
+    - Do not assume any quantity or total commitment for these items unless explicitly stated. Products listed with per-unit prices are optional or on-demand, and should not influence the total value.
 
     Additional Notes:
 
