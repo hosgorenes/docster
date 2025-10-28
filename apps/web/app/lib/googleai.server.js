@@ -85,13 +85,10 @@ export async function processDocumentsWithAI(files, profile) {
         }
       } catch (aiError) {
         console.error(`AI processing failed for ${file.name}:`, aiError);
-        // Add fallback result for this file
+        // Add fallback result for this file using the profile's fallback template
         allResults.push({
-          vendorName: "Processing Failed",
-          agreementName: file.name,
-          proposalValues: 0,
-          proposalCurrency: "USD",
-          products: [],
+          ...profile.fallbackTemplate,
+          source: file.name,
         });
       }
     }
@@ -136,15 +133,12 @@ export async function processDocumentsWithAI(files, profile) {
 }
 
 // Fallback processing function (without AI)
-export async function fallbackProcessing(files) {
+export async function fallbackProcessing(files, profile) {
   console.log("Using fallback processing without AI");
 
-  const fallbackResults = files.map((file, index) => ({
-    vendorName: "Unknown Vendor",
-    agreementName: file.name.replace(/\.[^/.]+$/, ""),
-    proposalValue: 0,
-    proposalCurrency: "USD",
-    products: [],
+  const fallbackResults = files.map((file) => ({
+    ...profile.fallbackTemplate,
+    source: file.name,
   }));
 
   // Convert fallback results to CSV

@@ -6,12 +6,14 @@ import {
 import {
   Proposal as ProposalProfile,
   HVAC as HVACProfile,
+  Statement as StatementProfile,
 } from "docster-profiles";
 
 export async function action({ request }) {
   try {
     const formData = await request.formData();
     const files = formData.getAll("files");
+    const profileName = formData.get("profile");
 
     if (!files || files.length === 0) {
       return data(
@@ -20,9 +22,22 @@ export async function action({ request }) {
       );
     }
 
-    // Instantiate selected Profile
-    const profile = new ProposalProfile();
-
+    let profile;
+    switch (profileName?.toLowerCase()) {
+      case "proposal":
+        profile = new ProposalProfile();
+        break;
+      case "hvac":
+        profile = new HVACProfile();
+        break;
+      case "statement":
+        profile = new StatementProfile();
+        break;
+      default:
+        // Default to Statement profile if no valid profile is selected
+        profile = new StatementProfile();
+        break;
+    }
     // Validate files
     for (const file of files) {
       if (!(file instanceof File)) {
@@ -32,16 +47,15 @@ export async function action({ request }) {
         );
       }
 
-      // Check file type against accepted types in ProposalProfile
+      // Check file type against accepted types in the profile
       if (!profile.acceptedFileTypes.includes(file.type)) {
         return data(
           {
             success: false,
-            error: `File ${file.name} type ${
-              file.type
-            } is not supported. Accepted types: ${profile.acceptedFileTypes.join(
-              ", "
-            )}`,
+            error: `File ${file.name} type ${file.type
+              } is not supported. Accepted types: ${profile.acceptedFileTypes.join(
+                ", "
+              )}`,
           },
           { status: 400 }
         );
@@ -75,7 +89,7 @@ export async function action({ request }) {
       `Processing ${files.length} files with Google AI using ${profile.profileName} profile`
     );
 
-    // Process files with Google AI and ProposalProfile
+    // Process files with Google AI and the profile
     let processedData;
     try {
       processedData = await processDocumentsWithAI(files, profile);
@@ -84,10 +98,10 @@ export async function action({ request }) {
 
       // Fallback to basic processing if AI fails
       console.log("Falling back to basic processing...");
-      processedData = await fallbackProcessing(files);
+      processedData = await fallbackProcessing(files, profile);
     }
 
-    // Return the structured data according to ProposalProfile schema
+    // Return the structured data according to the profile schema
     const responseData = {
       json: processedData.json,
       csv: processedData.csv,

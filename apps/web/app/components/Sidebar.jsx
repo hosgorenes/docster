@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import FileUploadArea from "./FileUploadArea";
 import FileList from "./FileList";
+import ProfileSelector from "./ProfileSelector";
 
 export default function Sidebar({
   files,
@@ -8,12 +9,34 @@ export default function Sidebar({
   onRemoveFile,
   onProcessFiles,
   isProcessing = false,
+  selectedProfile,
+  onProfileChange,
 }) {
+  const [profile, setProfile] = useState(selectedProfile || "Proposal");
+
+  // Update local state when prop changes
+  React.useEffect(() => {
+    if (selectedProfile) {
+      setProfile(selectedProfile);
+    }
+  }, [selectedProfile]);
+
+  // Notify parent when profile changes
+  const handleProfileChange = (newProfile) => {
+    setProfile(newProfile);
+    if (onProfileChange) {
+      onProfileChange(newProfile);
+    }
+  };
   return (
     <div className="layout-content-container flex flex-col w-80">
       <h2 className="text-[#101518] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">
         Uploaded Files
       </h2>
+
+      <div className="px-4 pb-4">
+        <ProfileSelector value={profile} onChange={handleProfileChange} />
+      </div>
 
       <FileUploadArea onFileUpload={onFileUpload} />
 
@@ -44,11 +67,10 @@ export default function Sidebar({
 
       <div className="flex px-4 py-3">
         <button
-          className={`flex min-w-[84px] max-w-[480px] items-center justify-center overflow-hidden rounded h-10 px-4 flex-1 text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${
-            files.length === 0 || isProcessing
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "bg-[#dce8f3] text-[#101518] cursor-pointer hover:bg-[#c5d8ef]"
-          }`}
+          className={`flex min-w-[84px] max-w-[480px] items-center justify-center overflow-hidden rounded h-10 px-4 flex-1 text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${files.length === 0 || isProcessing
+            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+            : "bg-[#dce8f3] text-[#101518] cursor-pointer hover:bg-[#c5d8ef]"
+            }`}
           onClick={onProcessFiles}
           disabled={files.length === 0 || isProcessing}
         >

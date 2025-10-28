@@ -12,6 +12,7 @@ export default function Index() {
   const [files, setFiles] = useState([]);
   const [activeTab, setActiveTab] = useState("json");
   const [successMessage, setSuccessMessage] = useState("");
+  const [selectedProfile, setSelectedProfile] = useState("Proposal");
   const fetcher = useFetcher();
 
   const isLoading =
@@ -80,6 +81,8 @@ export default function Index() {
     files.forEach((fileData) => {
       formData.append("files", fileData.file);
     });
+    // ✍️ bunu ekle
+    formData.append("profile", selectedProfile.toLowerCase());
 
     fetcher.submit(formData, {
       method: "POST",
@@ -110,6 +113,8 @@ export default function Index() {
           onRemoveFile={handleRemoveFile}
           onProcessFiles={handleProcessFiles}
           isProcessing={isLoading}
+          selectedProfile={selectedProfile}
+          onProfileChange={setSelectedProfile}
         />
 
         <div className="layout-content-container flex flex-col max-w-[960px] flex-1">

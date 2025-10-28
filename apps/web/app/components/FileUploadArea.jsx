@@ -79,11 +79,10 @@ export default function FileUploadArea({ onFileUpload }) {
   return (
     <div className="flex flex-col p-4">
       <div
-        className={`flex flex-col items-center gap-6 rounded-xl border-2 border-dashed px-6 py-14 cursor-pointer transition-colors ${
-          isDragging
-            ? "border-blue-400 bg-blue-50"
-            : "border-[#d4dce2] hover:border-blue-300"
-        }`}
+        className={`flex flex-col items-center gap-6 rounded-xl border-2 border-dashed px-6 py-14 cursor-pointer transition-colors ${isDragging
+          ? "border-blue-400 bg-blue-50"
+          : "border-[#d4dce2] hover:border-blue-300"
+          }`}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}

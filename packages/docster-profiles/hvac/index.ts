@@ -1,5 +1,5 @@
 import type { IProfile } from "../types";
-import { z } from "zod";
+import { file, z } from "zod";
 
 export class HVAC implements IProfile {
   public profileName = "HVAC";
@@ -111,5 +111,27 @@ export class HVAC implements IProfile {
     prependHeader: true,
     trimFieldValues: true,
     trimHeaderFields: true,
+  };
+  public fallbackTemplate = {
+    supplyAirFlow: [{
+      projectName: file.name.replace(/\.[^/.]+$/, ""),
+      ahuName: "Unknown AHU",
+      value: 0, unit: "l/s", confidence: 0,
+    }],
+    returnAirFlow: [{
+      projectName: file.name.replace(/\.[^/.]+$/, ""),
+      ahuName: "Unknown AHU",
+      value: 0, unit: "l/s", confidence: 0,
+    }],
+    supplyStaticPD: [{
+      projectName: file.name.replace(/\.[^/.]+$/, ""),
+      ahuName: "Unknown AHU",
+      value: 0, unit: "Pa", confidence: 0,
+    }],
+    returnStaticPD: [{
+      projectName: file.name.replace(/\.[^/.]+$/, ""),
+      ahuName: "Unknown AHU",
+      value: 0, unit: "Pa", confidence: 0,
+    }],
   };
 }

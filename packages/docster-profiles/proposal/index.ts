@@ -1,5 +1,5 @@
 import type { IProfile } from "../types";
-import { z } from "zod";
+import { file, z } from "zod";
 
 export class Proposal implements IProfile {
   public profileName = "Proposal";
@@ -75,5 +75,12 @@ export class Proposal implements IProfile {
     prependHeader: true,
     trimFieldValues: true,
     trimHeaderFields: true,
+  }
+  public fallbackTemplate = {
+    vendorName: "Unknown Vendor",
+    agreementName: file.name.replace(/\.[^/.]+$/, ""),
+    proposalValue: 0,
+    proposalCurrency: "TRY",
+    products: [],
   };
 }
