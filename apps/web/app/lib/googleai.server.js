@@ -106,6 +106,32 @@ export async function processDocumentsWithAI(files, profile) {
       validatedResults = allResults;
     }
 
+    // Merge fee rows into the same-date main transaction (user's approach)
+    if (profile.profileName === "Statement" && Array.isArray(validatedResults)) {
+      const mergedData = [];
+      const tempByDate = {};
+
+      for (const row of validatedResults) {
+        const dateKey = row?.transactionDate || "unknown";
+
+        if (/ücret|fee|komisyon|saklama/i.test(String(row?.description || ""))) {
+          if (tempByDate[dateKey]) {
+            const feeValue = Math.abs(Number(row?.amount ?? row?.price ?? 0) || 0);
+            const currentFee = Number(tempByDate[dateKey].fee || 0);
+            tempByDate[dateKey].fee = Number((currentFee + feeValue).toFixed(2));
+          }
+        } else {
+          tempByDate[dateKey] = { ...row, fee: row?.fee ?? tempByDate[dateKey]?.fee ?? null };
+        }
+      }
+
+      for (const key of Object.keys(tempByDate)) {
+        mergedData.push(tempByDate[key]);
+      }
+
+      validatedResults = mergedData;
+    }
+
     // Convert JSON to CSV using ProposalProfile options
     let csvData;
     try {
