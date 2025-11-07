@@ -1,22 +1,23 @@
 import { useState, useEffect } from "react";
-import { useFetcher } from "@remix-run/react";
+import { useFetcher, useNavigate } from "@remix-run/react";
 import {
   Header,
   Sidebar,
   TabNavigation,
   ResultsPanel,
-  Toast,
 } from "../components";
 
 export default function Index() {
   const [files, setFiles] = useState([]);
   const [activeTab, setActiveTab] = useState("json");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [selectedProfile, setSelectedProfile] = useState("Proposal");
+  const [selectedProfile, setSelectedProfile] = useState("Statement");
+  const [isProcessingPolling, setIsProcessingPolling] = useState(false);
+  const [currentBatchId, setCurrentBatchId] = useState("");
+  const [resultsData, setResultsData] = useState(null);
+  const [isreadytoredirect, setIsreadytoredirect] = useState(false);
   const fetcher = useFetcher();
-
-  const isLoading =
-    fetcher.state === "submitting" || fetcher.state === "loading";
+  const navigate = useNavigate();
+  const isLoading = fetcher.state === "submitting" || fetcher.state === "loading";
   const responseData = fetcher.data?.data || fetcher.data;
   const hasResults = responseData && responseData.success;
   // Use server-provided data for both JSON and CSV
@@ -26,36 +27,15 @@ export default function Index() {
 
   // Handle fetcher response and errors
   useEffect(() => {
-    console.log("Fetcher state:", fetcher.state, "Raw data:", fetcher.data);
-    console.log("Response data:", responseData);
-
     if (responseData) {
       if (responseData.success) {
-        setSuccessMessage(
-          responseData.message || "Files processed successfully!"
-        );
         // Clear files after successful processing
         setFiles([]);
-
-        // Clear success message after 5 seconds
-        const timer = setTimeout(() => {
-          setSuccessMessage("");
-        }, 5000);
-
-        return () => clearTimeout(timer);
       } else {
         console.error("Processing failed:", responseData.error);
       }
     }
 
-    // Handle network or submission errors
-    if (
-      fetcher.state === "idle" &&
-      fetcher.data === undefined &&
-      files.length > 0
-    ) {
-      console.warn("Submission completed but no data received");
-    }
   }, [fetcher.data, fetcher.state, responseData]);
 
   const handleFileUpload = (newFiles) => {
@@ -67,29 +47,98 @@ export default function Index() {
     }));
 
     setFiles((prevFiles) => [...prevFiles, ...fileData]);
-    console.log("Files uploaded:", fileData);
   };
 
   const handleRemoveFile = (fileName) => {
     setFiles((prevFiles) => prevFiles.filter((file) => file.name !== fileName));
   };
 
-  const handleProcessFiles = () => {
+  const handleProcessFiles = async () => {
     if (files.length === 0) return;
 
     const formData = new FormData();
     files.forEach((fileData) => {
       formData.append("files", fileData.file);
     });
-    // ✍️ bunu ekle
     formData.append("profile", selectedProfile.toLowerCase());
 
-    fetcher.submit(formData, {
-      method: "POST",
-      action: "/api/upload",
-      encType: "multipart/form-data",
-    });
+    try {
+      const res = await fetch(
+        "http://localhost:4000/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const json = await res.json();
+
+      if (json?.success) {
+        const apiBase = "http://localhost:4000";
+
+        if (json.batchId) {
+          window.location.href = `${apiBase}/results/${json.batchId}`;
+          return;
+        }
+
+        // Fallback: no batchId returned
+        setFiles([]);
+      } else {
+        console.error("Processing failed:", json?.error || res.statusText);
+      }
+    } catch (err) {
+      console.error("Network error while uploading:", err);
+    }
   };
+
+  // Prefer polling results endpoint every 10s while processing
+  useEffect(() => {
+    if (!isProcessingPolling || !currentBatchId) return;
+
+    const apiBase = "http://localhost:4000";
+
+    const fetchResults = async () => {
+      try {
+        const res = await fetch(`${apiBase}/results/${currentBatchId}`);
+        const json = await res.json();
+
+        if (json?.success && Array.isArray(json.jobs)) {
+          const jobs = json.jobs;
+          const allCompleted = jobs.length > 0 && jobs.every((j) => j.status === "completed");
+          const anyFailed = jobs.some((j) => j.status === "failed");
+
+          if (allCompleted) {
+            const firstOutput = jobs[0]?.output;
+            try {
+              const parsed = firstOutput ? JSON.parse(firstOutput) : null;
+              setResultsData(parsed);
+            } catch { }
+            console.log("✅ All jobs completed.");
+
+            // Redirect to results page after 3 seconds
+            setTimeout(() => {
+              setIsProcessingPolling(false);
+              setIsreadytoredirect(true);
+              navigate(`/results/${currentBatchId}`);
+            }, 3000);
+
+          } else if (anyFailed) {
+            console.error("❌ One or more jobs failed:", jobs.filter((j) => j.status === "failed"));
+            setIsProcessingPolling(false);
+          }
+        } else if (json?.success === false) {
+          console.error("❌ Processing failed (backend returned error):", json.error);
+          setIsProcessingPolling(false);
+        }
+      } catch (e) {
+        console.error("Polling error:", e);
+        setIsProcessingPolling(false);
+      }
+    };
+
+    fetchResults();
+    const intervalId = setInterval(fetchResults, 10000);
+    return () => clearInterval(intervalId);
+  }, [isProcessingPolling, currentBatchId]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -98,13 +147,6 @@ export default function Index() {
   return (
     <>
       <Header />
-
-      <Toast
-        message={successMessage}
-        type="success"
-        duration={5000}
-        onClose={() => setSuccessMessage("")}
-      />
 
       <div className="gap-1 px-6 flex flex-1 justify-center py-5">
         <Sidebar
@@ -120,13 +162,19 @@ export default function Index() {
         <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
           <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
-          <ResultsPanel
-            hasResults={hasResults}
-            isLoading={isLoading}
-            data={processedData}
-            activeTab={activeTab}
-            error={error}
-          />
+          {isreadytoredirect ? (
+            <div className="text-center p-6 text-green-600 font-semibold">
+              Results ready — you will be redirected in 3 seconds...
+            </div>
+          ) : (
+            <ResultsPanel
+              hasResults={Boolean(resultsData) || hasResults}
+              isLoading={isLoading || isProcessingPolling}
+              data={resultsData || processedData}
+              activeTab={activeTab}
+              error={error}
+            />
+          )}
         </div>
       </div>
     </>
