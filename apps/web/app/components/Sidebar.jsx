@@ -4,13 +4,14 @@ import FileList from "./FileList";
 import ProfileSelector from "./ProfileSelector";
 
 export default function Sidebar({
-  files,
+  files = [],
   onFileUpload,
   onRemoveFile,
   onProcessFiles,
   isProcessing = false,
   selectedProfile,
   onProfileChange,
+  readOnly = false,
 }) {
   const [profile, setProfile] = useState(selectedProfile || "Proposal");
 
@@ -23,6 +24,7 @@ export default function Sidebar({
 
   // Notify parent when profile changes
   const handleProfileChange = (newProfile) => {
+    if (readOnly) return;
     setProfile(newProfile);
     if (onProfileChange) {
       onProfileChange(newProfile);
@@ -35,10 +37,14 @@ export default function Sidebar({
       </h2>
 
       <div className="px-4 pb-4">
-        <ProfileSelector value={profile} onChange={handleProfileChange} />
+        <ProfileSelector
+          value={profile}
+          onChange={handleProfileChange}
+          disabled={readOnly}
+        />
       </div>
 
-      <FileUploadArea onFileUpload={onFileUpload} />
+      {!readOnly && <FileUploadArea onFileUpload={onFileUpload} />}
 
       {files.length > 0 ? (
         <FileList files={files} onRemoveFile={onRemoveFile} />
@@ -65,41 +71,44 @@ export default function Sidebar({
         </div>
       )}
 
-      <div className="flex px-4 py-3">
-        <button
-          className={`flex min-w-[84px] max-w-[480px] items-center justify-center overflow-hidden rounded h-10 px-4 flex-1 text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${files.length === 0 || isProcessing
-            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-            : "bg-[#dce8f3] text-[#101518] cursor-pointer hover:bg-[#c5d8ef]"
+      {!readOnly && (
+        <div className="flex px-4 py-3">
+          <button
+            className={`flex min-w-[84px] max-w-[480px] items-center justify-center overflow-hidden rounded h-10 px-4 flex-1 text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${
+              files.length === 0 || isProcessing
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-[#dce8f3] text-[#101518] cursor-pointer hover:bg-[#c5d8ef]"
             }`}
-          onClick={onProcessFiles}
-          disabled={files.length === 0 || isProcessing}
-        >
-          {isProcessing ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 animate-spin">
-                <svg className="w-full h-full" fill="none" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
+            onClick={onProcessFiles}
+            disabled={files.length === 0 || isProcessing}
+          >
+            {isProcessing ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 animate-spin">
+                  <svg className="w-full h-full" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                </div>
+                <span className="truncate">Processing...</span>
               </div>
-              <span className="truncate">Processing...</span>
-            </div>
-          ) : (
-            <span className="truncate">Process Files</span>
-          )}
-        </button>
-      </div>
+            ) : (
+              <span className="truncate">Process Files</span>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

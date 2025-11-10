@@ -107,11 +107,10 @@ export default function Index() {
           const anyFailed = jobs.some((j) => j.status === "failed");
 
           if (allCompleted) {
-            const firstOutput = jobs[0]?.output;
-            try {
-              const parsed = firstOutput ? JSON.parse(firstOutput) : null;
-              setResultsData(parsed);
-            } catch { }
+            setResultsData({
+              json: json.json ?? [],
+              csv: json.csv ?? "",
+            });
             console.log("✅ All jobs completed.");
 
             // Redirect to results page after 3 seconds

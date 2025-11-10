@@ -1,6 +1,7 @@
 import React from 'react';
 
 export default function FileListItem({ fileName, fileSize, onRemove }) {
+  const isRemovable = typeof onRemove === "function";
   return (
     <div className="flex items-center gap-4 bg-gray-50 px-4 min-h-[72px] py-2 justify-between">
       <div className="flex items-center gap-4">
@@ -29,14 +30,16 @@ export default function FileListItem({ fileName, fileSize, onRemove }) {
           </p>
         </div>
       </div>
-      <div className="shrink-0">
-        <button
-          className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded h-8 px-4 bg-[#eaedf1] text-[#101518] text-sm font-medium leading-normal w-fit"
-          onClick={() => onRemove(fileName)}
-        >
-          <span className="truncate">Remove</span>
-        </button>
-      </div>
+      {isRemovable && (
+        <div className="shrink-0">
+          <button
+            className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded h-8 px-4 bg-[#eaedf1] text-[#101518] text-sm font-medium leading-normal w-fit"
+            onClick={() => onRemove?.(fileName)}
+          >
+            <span className="truncate">Remove</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

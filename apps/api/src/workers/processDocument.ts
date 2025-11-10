@@ -54,20 +54,21 @@ export async function processDocument(job: Job) {
         ];
 
         const result = await processDocumentsWithAI(files, profile);
+        const outputJson = Array.isArray(result?.json) ? result.json : [];
 
         // 4. Save AI result to DB
         await db
             .update(jobsTable)
             .set({
                 status: "completed",
-                output: JSON.stringify(result),
+                output: JSON.stringify(outputJson),
                 finishedAt: Math.floor(Date.now() / 1000),
             })
             .where(eq(jobsTable.jobId, job.id as unknown as string));
 
-        console.log(`[${job.id}] ✅ Process completed successfully.`);
+        console.log(`[${job.id}]  Process completed successfully.`);
     } catch (err) {
-        console.error(`[${job.id}] ❌ Processing failed. Running fallback...`);
+        console.error(`[${job.id}]  Processing failed. Running fallback...`);
 
         try {
             // 5. Fallback mode (if AI or MinIO failed)
@@ -87,12 +88,15 @@ export async function processDocument(job: Job) {
 
             const fallbackFiles = [{ fileName: fileName || "unknown.pdf" }] as any;
             const fallbackResult = await fallbackProcessing(fallbackFiles, profile);
+            const fallbackJson = Array.isArray(fallbackResult?.json)
+                ? fallbackResult.json
+                : [];
 
             await db
                 .update(jobsTable)
                 .set({
                     status: "completed", // still mark completed so UI shows something
-                    output: JSON.stringify(fallbackResult),
+                    output: JSON.stringify(fallbackJson),
                     finishedAt: Math.floor(Date.now() / 1000),
                 })
                 .where(eq(jobsTable.jobId, job.id as unknown as string));

@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { eq } from "drizzle-orm";
+import { json2csv } from "json-2-csv";
 import { db } from "../utils/db";
 import { jobsTable } from "../schema";
-import { eq } from "drizzle-orm";
 import { BatchIdSchema } from "../types";
 
 type ResultsParams = {
@@ -40,11 +41,49 @@ export async function registerResultsRoute(app: FastifyInstance) {
                     });
                 }
 
+                const combinedJson: unknown[] = [];
+                for (const row of rows) {
+                    if (!row.output) continue;
+                    try {
+                        const parsedOutput = JSON.parse(row.output);
+                        if (Array.isArray(parsedOutput)) {
+                            combinedJson.push(...parsedOutput);
+                        }
+                    } catch (parseErr) {
+                        console.error(
+                            `Error parsing job output for job ${row.jobId}:`,
+                            parseErr
+                        );
+                    }
+                }
+
+                let csvData = "";
+                try {
+                    csvData =
+                        combinedJson.length > 0
+                            ? await json2csv(combinedJson as object[])
+                            : "";
+                } catch (csvErr) {
+                    console.error(
+                        "Error converting combined results to CSV:",
+                        csvErr
+                    );
+                    csvData =
+                        "Error converting to CSV: " +
+                        (csvErr as Error).message;
+                }
+
                 return reply.code(200).send({
                     success: true,
                     batchId,
-                    count: rows.length,
-                    jobs: rows,
+                    jobCount: rows.length,
+                    json: combinedJson,
+                    csv: csvData,
+                    jobs: rows.map(
+                        ({ output, ...rest }) => ({
+                            ...rest,
+                        })
+                    ),
                 });
             } catch (err) {
                 console.error("❌ Error fetching batch results:", err);

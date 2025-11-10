@@ -1,6 +1,6 @@
 import { Worker, Job } from "bullmq";
 import IORedis from "ioredis";
-import { processDocument } from "../src/workers/processDocument";
+import { processDocument } from "./workers/processDocument";
 
 // Create a new worker that listens to the documentQueue
 const worker = new Worker(
@@ -12,7 +12,6 @@ const worker = new Worker(
         connection: new IORedis({
             host: process.env.REDIS_HOST || "127.0.0.1",
             port: parseInt(process.env.REDIS_PORT || "6379"),
-            // Required for BullMQ blocking pop
             maxRetriesPerRequest: null,
             enableReadyCheck: false,
         })

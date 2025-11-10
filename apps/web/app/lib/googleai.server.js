@@ -1,12 +1,11 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { HumanMessage } from "@langchain/core/messages";
 import * as converter from "json-2-csv";
 
 function initializeGoogleAI() {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not found in environment");
   return new ChatGoogleGenerativeAI({
-    model: process.env.GOOGLE_AI_MODEL || "gemini-1.5-pro-latest",
+    model: process.env.GOOGLE_AI_MODEL || "gemini-2.5-pro",
     temperature: 0.3,
     maxOutputTokens: 10000,
     apiKey,
@@ -22,43 +21,89 @@ export async function processDocumentsWithAI(files, profile) {
   const startTime = Date.now();
   const allResults = [];
 
-  for (const { fileBuffer, fileName, fileType } of files) {
-    console.log(`📄 Processing: ${fileName} (${fileType})`);
+  for (let index = 0; index < files.length; index++) {
+    const entry = files[index];
+    const { fileBuffer, fileName, fileType } = entry ?? {};
+
+    if (!entry || !Buffer.isBuffer(fileBuffer)) {
+      throw new Error(`Invalid file buffer received at index ${index}`);
+    }
+
+    const resolvedFileName = fileName || `document-${index + 1}.pdf`;
+    const resolvedMimeType = fileType || "application/pdf";
 
     const base64Data = fileBuffer.toString("base64");
 
-    // LangChain backend için doğru format → inlineData
-    const message = new HumanMessage({
-      content: [
-        { type: "text", text: profile.prompt },
-        {
-          type: fileType || "application/pdf",
-          data: base64Data,
-        },
-      ],
-    });
+    const messageContent = [
+      { type: "text", text: profile.prompt },
+      {
+        type: resolvedMimeType,
+        data: base64Data,
+      },
+    ];
 
     try {
-      const result = await structuredModel.invoke([message]);
-      console.log(`✅ AI processed ${fileName}`);
-      allResults.push(...(Array.isArray(result) ? result : [result]));
-    } catch (err) {
-      console.error(`⚠️ AI failed for ${fileName}:`, err.message);
-      allResults.push({ ...profile.fallbackTemplate, source: fileName });
+      const result = await structuredModel.invoke([
+        {
+          role: "user",
+          content: messageContent,
+        },
+      ]);
+
+      console.log("✅ AI processing result:", {
+        file: resolvedFileName,
+        result,
+      });
+
+      if (Array.isArray(result)) {
+        allResults.push(...result);
+      } else if (result) {
+        allResults.push(result);
+      } else {
+        allResults.push({
+          ...profile.fallbackTemplate,
+          source: resolvedFileName,
+        });
+      }
+    } catch (aiError) {
+      console.error(
+        `⚠️ AI processing failed for ${resolvedFileName}:`,
+        aiError
+      );
+      allResults.push({
+        ...profile.fallbackTemplate,
+        source: resolvedFileName,
+      });
     }
   }
 
   const endTime = Date.now();
   const processingTime = `${((endTime - startTime) / 1000).toFixed(1)}s`;
 
+  let validatedResults;
+  try {
+    validatedResults = profile.schema.parse(allResults);
+  } catch (validationError) {
+    console.error("schema validation failed:", validationError);
+    validatedResults = allResults;
+  }
+
   let csv;
   try {
-    csv = converter.json2csv(allResults, profile.csvConversionOptions || {});
+    csv = converter.json2csv(
+      validatedResults,
+      profile.csvConversionOptions || {}
+    );
   } catch (csvErr) {
     csv = "Error converting to CSV: " + csvErr.message;
   }
 
-  return { json: allResults, csv, processingTime, totalFiles: files.length };
+  return {
+    json: validatedResults,
+    csv,
+    processingTime,
+    totalFiles: files.length,
+  };
 }
 
 export async function fallbackProcessing(files, profile) {
