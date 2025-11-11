@@ -74,11 +74,10 @@ export default function Sidebar({
       {!readOnly && (
         <div className="flex px-4 py-3">
           <button
-            className={`flex min-w-[84px] max-w-[480px] items-center justify-center overflow-hidden rounded h-10 px-4 flex-1 text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${
-              files.length === 0 || isProcessing
+            className={`flex min-w-[84px] max-w-[480px] items-center justify-center overflow-hidden rounded h-10 px-4 flex-1 text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${files.length === 0 || isProcessing
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                 : "bg-[#dce8f3] text-[#101518] cursor-pointer hover:bg-[#c5d8ef]"
-            }`}
+              }`}
             onClick={onProcessFiles}
             disabled={files.length === 0 || isProcessing}
           >

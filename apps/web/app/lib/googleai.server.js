@@ -55,15 +55,24 @@ export async function processDocumentsWithAI(files, profile) {
         result,
       });
 
-      if (Array.isArray(result)) {
-        allResults.push(...result);
+      // Normalize result items against profile fallback template
+      const normalizeItem = (item = {}) => {
+        const base = { ...(profile.fallbackTemplate || {}) };
+        // ensure undefined values become null for schema validation
+        for (const key of Object.keys(base)) {
+          if (item[key] === undefined) {
+            item[key] = base[key] ?? null;
+          }
+        }
+        return { ...base, ...item, source: resolvedFileName };
+      };
+
+      if (Array.isArray(result) && result.length > 0) {
+        allResults.push(...result.map((r) => normalizeItem(r)));
       } else if (result) {
-        allResults.push(result);
+        allResults.push(normalizeItem(result));
       } else {
-        allResults.push({
-          ...profile.fallbackTemplate,
-          source: resolvedFileName,
-        });
+        allResults.push(normalizeItem({}));
       }
     } catch (aiError) {
       console.error(

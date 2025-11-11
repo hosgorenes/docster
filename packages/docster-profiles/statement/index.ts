@@ -2,11 +2,11 @@ import type { IProfile } from "../types/profile";
 import { z } from "zod";
 
 export class Statement implements IProfile {
-    public profileName = "Statement";
-    public acceptedFileTypes = ["application/pdf"];
-    public providers = ["GoogleAI"];
+  public profileName = "Statement";
+  public acceptedFileTypes = ["application/pdf"];
+  public providers = ["GoogleAI"];
 
-    public prompt = `
+  public prompt = `
     You are provided with a bank or investment account statement document (Excel or PDF).
     
     Your task is to extract every transaction in structured JSON format.
@@ -61,42 +61,42 @@ export class Statement implements IProfile {
     `;
 
 
-    public schema = z.array(
-        z.object({
-            portfolioInformation: z.string().nullable(),
-            depotNumber: z.string().nullable(),
-            portfolioDescription: z.string().nullable(),
-            transactionId: z.string().nullable(),
-            transactionType: z.string().nullable(),
-            transactionDate: z.string().nullable(),
-            externalBookingDate: z.string().nullable(),
-            valueDate: z.string().nullable(),
-            titleAccount: z.string().nullable(),
-            currency: z.string().nullable(),
-            description: z.string().nullable(),
-            amount: z.number().nullable(),
-            price: z.number().nullable(),
-            costPrice: z.number().nullable(),
-            fee: z.number().nullable(),
-            accruedInterest: z.number().nullable(),
-            bookingText: z.string().nullable(),
-            accountDescription: z.string().nullable(),
-        })
-    );
+  public schema = z.array(
+    z.object({
+      portfolioInformation: z.string().nullable(),
+      depotNumber: z.string().nullable(),
+      portfolioDescription: z.string().nullable(),
+      transactionId: z.string().nullable(),
+      transactionType: z.string().nullable(),
+      transactionDate: z.string().nullable(),
+      externalBookingDate: z.string().nullable(),
+      valueDate: z.string().nullable(),
+      titleAccount: z.string().nullable(),
+      currency: z.string().nullable(),
+      description: z.string().nullable(),
+      amount: z.number().nullable(),
+      price: z.number().nullable(),
+      costPrice: z.number().nullable(),
+      fee: z.number().nullable(),
+      accruedInterest: z.number().nullable(),
+      bookingText: z.string().nullable(),
+      accountDescription: z.string().nullable(),
+    })
+  );
 
-    public csvConversionOptions = {
-        unwindArrays: true,
-        expandArrayObjects: true,
-        prependHeader: true,
-        trimFieldValues: true,
-        trimHeaderFields: true,
-    };
+  public csvConversionOptions = {
+    unwindArrays: true,
+    expandArrayObjects: true,
+    prependHeader: true,
+    trimFieldValues: true,
+    trimHeaderFields: true,
+  };
 
-    public fallbackTemplate = {
-        transactionId: "N/A",
-        transactionDate: null,
-        description: "AI processing failed",
-        currency: "TRY",
-        amount: 0,
-    };
+  public fallbackTemplate = {
+    transactionId: "N/A",
+    transactionDate: null,
+    description: "AI processing failed",
+    currency: "TRY",
+    amount: 0,
+  };
 }

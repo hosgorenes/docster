@@ -63,20 +63,18 @@ export default function Index() {
     formData.append("profile", selectedProfile.toLowerCase());
 
     try {
-      const res = await fetch(
-        "http://localhost:4000/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const res = await fetch("http://localhost:4000/upload", {
+        method: "POST",
+        body: formData,
+      });
       const json = await res.json();
 
       if (json?.success) {
-        const apiBase = "http://localhost:4000";
-
         if (json.batchId) {
-          window.location.href = `${apiBase}/results/${json.batchId}`;
+          setCurrentBatchId(json.batchId);
+          setIsProcessingPolling(true);
+          setIsreadytoredirect(false);
+          setResultsData(null);
           return;
         }
 
@@ -113,12 +111,13 @@ export default function Index() {
             });
             console.log("✅ All jobs completed.");
 
+            setIsProcessingPolling(false);
+            setIsreadytoredirect(true);
+
             // Redirect to results page after 3 seconds
             setTimeout(() => {
-              setIsProcessingPolling(false);
-              setIsreadytoredirect(true);
               navigate(`/results/${currentBatchId}`);
-            }, 3000);
+            }, 5000);
 
           } else if (anyFailed) {
             console.error("❌ One or more jobs failed:", jobs.filter((j) => j.status === "failed"));
@@ -163,7 +162,7 @@ export default function Index() {
 
           {isreadytoredirect ? (
             <div className="text-center p-6 text-green-600 font-semibold">
-              Results ready — you will be redirected in 3 seconds...
+              Results ready — you will be redirected in 5 seconds...
             </div>
           ) : (
             <ResultsPanel
