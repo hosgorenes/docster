@@ -1,5 +1,6 @@
 import { Worker, Job } from "bullmq";
 import IORedis from "ioredis";
+import logger from "./lib/logger";
 import { processDocument } from "./workers/processDocument";
 
 // Create a new worker that listens to the documentQueue
@@ -19,8 +20,8 @@ const worker = new Worker(
 );
 
 // Minimal logging only
-worker.on("error", () => console.error(`[worker] error`));
+worker.on("error", (err) => logger.error(`[worker] error`, err));
 worker.on("failed", (job: Job | undefined) => {
-    if (job) console.error(`[${job.id}] Processing failed.`);
-    else console.error(`[worker] job failed.`);
+    if (job) logger.error(`[${job.id}] Processing failed.`);
+    else logger.error(`[worker] job failed.`);
 });

@@ -1,21 +1,34 @@
 import type { Job } from "bullmq";
 import axios from "axios";
-import { getObjectAsBuffer } from "../utils/minio";
-import { processDocumentsWithAI, fallbackProcessing } from "../../../web/app/lib/googleai.server";
-import { db } from "../utils/db";
-import { eq } from "drizzle-orm";
-import { jobsTable } from "../schema";
 import {
     Proposal as ProposalProfile,
     HVAC as HVACProfile,
     Statement as StatementProfile,
 } from "docster-profiles";
+import logger from "../lib/logger";
+import { getObjectAsBuffer } from "../utils/minio";
+import { processDocumentsWithAI, fallbackProcessing } from "../../../web/app/lib/googleai.server";
+import { db } from "../utils/db";
+import { eq } from "drizzle-orm";
+import { jobsTable } from "../schema";
+
+const profileFactory: Record<string, () => any> = {
+    proposal: () => new ProposalProfile(),
+    hvac: () => new HVACProfile(),
+    statement: () => new StatementProfile(),
+};
+
+const resolveProfile = (profileName?: string) => {
+    const factory =
+        profileFactory[profileName?.toLowerCase() ?? ""] ?? profileFactory.statement;
+    return factory();
+};
 
 // Main function to process the document
 export async function processDocument(job: Job) {
     const { fileUrl, profileName, fileName, objectName } = job.data;
 
-    console.log(`[${job.id}] Processing started.`);
+    logger.info(`[${job.id}] Processing started.`);
 
     try {
         // 1. Get file as Buffer from MinIO or fallback to axios
@@ -29,20 +42,7 @@ export async function processDocument(job: Job) {
             fileBuffer = Buffer.from(res.data);
         }
 
-        // 2. Map profileName → Profile instance
-        let profile: any;
-        switch (profileName?.toLowerCase()) {
-            case "proposal":
-                profile = new ProposalProfile();
-                break;
-            case "hvac":
-                profile = new HVACProfile();
-                break;
-            case "statement":
-            default:
-                profile = new StatementProfile();
-                break;
-        }
+        const profile = resolveProfile(profileName);
 
         // 3. Send file to AI
         const files = [
@@ -66,25 +66,13 @@ export async function processDocument(job: Job) {
             })
             .where(eq(jobsTable.jobId, job.id as unknown as string));
 
-        console.log(`[${job.id}]  Process completed successfully.`);
+        logger.info(`[${job.id}]  Process completed successfully.`);
     } catch (err) {
-        console.error(`[${job.id}]  Processing failed. Running fallback...`);
+        logger.error(`[${job.id}]  Processing failed. Running fallback...`, { error: err as Error });
 
         try {
             // 5. Fallback mode (if AI or MinIO failed)
-            let profile: any;
-            switch (profileName?.toLowerCase()) {
-                case "proposal":
-                    profile = new ProposalProfile();
-                    break;
-                case "hvac":
-                    profile = new HVACProfile();
-                    break;
-                case "statement":
-                default:
-                    profile = new StatementProfile();
-                    break;
-            }
+            const profile = resolveProfile(profileName);
 
             const fallbackFiles = [{ fileName: fileName || "unknown.pdf" }] as any;
             const fallbackResult = await fallbackProcessing(fallbackFiles, profile);
@@ -101,7 +89,7 @@ export async function processDocument(job: Job) {
                 })
                 .where(eq(jobsTable.jobId, job.id as unknown as string));
 
-            console.log(`[${job.id}] ⚠️ Fallback completed.`);
+            logger.warn(`[${job.id}] ⚠️ Fallback completed.`);
         } catch (_fallbackErr) {
             // 6. Even fallback failed → mark as failed
             await db
@@ -112,7 +100,7 @@ export async function processDocument(job: Job) {
                 })
                 .where(eq(jobsTable.jobId, job.id as unknown as string));
 
-            console.error(`[${job.id}] ❌ Both main and fallback failed.`);
+            logger.error(`[${job.id}] ❌ Both main and fallback failed.`);
         }
     }
 }

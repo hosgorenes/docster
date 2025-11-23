@@ -4,6 +4,7 @@ import { db } from "./db";
 import { jobsTable } from "../schema";
 import type { Profile, BatchId } from "../types";
 import { uploadToMinio } from "./minio";
+import logger from "../lib/logger";
 
 // Upload file to MinIO and queue job for processing
 export async function addDocumentJob(
@@ -31,13 +32,13 @@ export async function addDocumentJob(
     });
 
     // Send URL information to the queue
-    console.log("📤 Queuing document for AI processing:", { jobId, fileName });
+    logger.info("📤 Queuing document for AI processing:", { jobId, fileName });
     await docQueue.add(
         "processDocument", // same name as defined in worker.ts
         { jobId, fileUrl, userEmail, profileName, batchId, fileName, objectName },
         { jobId }
     );
 
-    console.log(`✅ Job queued successfully: ${jobId}`);
+    logger.info(`✅ Job queued successfully: ${jobId}`);
     return jobId;
 }

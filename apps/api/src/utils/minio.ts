@@ -1,5 +1,6 @@
 import { Client } from 'minio'
 import { Readable } from 'stream';
+import logger from '../lib/logger';
 
 export const bucketName = process.env.MINIO_BUCKET_NAME || 'sourcefiles';
 
@@ -16,10 +17,10 @@ export const minioClient = new Client({
         const exists = await minioClient.bucketExists(bucketName);
         if (!exists) {
             await minioClient.makeBucket(bucketName, "us-east-1");
-            console.log(`🪣 Created new bucket: ${bucketName}`);
+            logger.info(`🪣 Created new bucket: ${bucketName}`);
         }
     } catch (err) {
-        console.error("⚠️ MinIO bucket check failed:", err);
+        logger.error("⚠️ MinIO bucket check failed:", err);
     }
 })();
 
@@ -32,10 +33,10 @@ export async function uploadToMinio(
         await minioClient.putObject(bucketName, objectName, stream);
         const fileUrl = `http://${process.env.MINIO_ENDPOINT || "localhost"}:${process.env.MINIO_PORT || 9000
             }/${bucketName}/${objectName}`;
-        console.log(`✅ Uploaded to MinIO: ${objectName}`);
+        logger.info(`✅ Uploaded to MinIO: ${objectName}`);
         return fileUrl;
     } catch (err) {
-        console.error("❌ Error uploading to MinIO:", err);
+        logger.error("❌ Error uploading to MinIO:", err);
         throw err;
     }
 }

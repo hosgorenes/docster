@@ -9,12 +9,120 @@ export default function ResultsPanel({
   activeTab,
   error,
   children,
+  processingMessage,
+  processingMessageDetail,
+  resultsUrl,
+  processingStatus,
+  jobs,
 }) {
+  // Show processing status UI (similar to results screen)
+  if (processingStatus) {
+    const { message, jobCount, completedCount, failedCount, waitingCount } = processingStatus;
+    const remainingCount = waitingCount || (jobCount - completedCount - failedCount);
+    const progressPercentage = jobCount > 0 ? Math.round((completedCount / jobCount) * 100) : 0;
+
+    // Show job details if available
+    const hasJobDetails = jobs && Array.isArray(jobs) && jobs.length > 0;
+
+    return (
+      <div className="flex flex-col px-4 py-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 max-w-2xl mx-auto">
+          <div className="flex items-center gap-3 mb-4">
+            <LoadingSpinner size="medium" />
+            <h3 className="text-xl font-semibold text-blue-900">{message}</h3>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {/* Progress Bar */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-700">Progress</span>
+                <span className="text-sm font-semibold text-blue-700">{progressPercentage}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${progressPercentage}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Statistics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="text-2xl font-bold text-gray-900">{jobCount}</div>
+                <div className="text-sm text-gray-600 mt-1">Total Jobs</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <div className="text-2xl font-bold text-green-700">{completedCount}</div>
+                <div className="text-sm text-green-600 mt-1">Completed</div>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                <div className="text-2xl font-bold text-yellow-700">{remainingCount}</div>
+                <div className="text-sm text-yellow-600 mt-1">Remaining</div>
+              </div>
+              {failedCount > 0 && (
+                <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                  <div className="text-2xl font-bold text-red-700">{failedCount}</div>
+                  <div className="text-sm text-red-600 mt-1">Failed</div>
+                </div>
+              )}
+            </div>
+
+            {/* Job Details List */}
+            {hasJobDetails && (
+              <div className="mt-6">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">File Status:</h4>
+                <div className="space-y-2">
+                  {jobs.map((job, index) => {
+                    const statusColor =
+                      job.status === "completed" ? "text-green-600 bg-green-50" :
+                        job.status === "failed" ? "text-red-600 bg-red-50" :
+                          "text-yellow-600 bg-yellow-50";
+
+                    return (
+                      <div key={job.jobId || index} className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-sm text-gray-700 truncate">{job.fileName || `Job ${index + 1}`}</span>
+                        </div>
+                        <span className={`text-xs font-medium px-2 py-1 rounded ${statusColor}`}>
+                          {job.status === "completed" ? "✓ Completed" :
+                            job.status === "failed" ? "✗ Failed" :
+                              job.status === "waiting" ? "⏳ Waiting" :
+                                job.status || "Processing"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col px-4 py-6">
         <div className="flex flex-col items-center gap-6 py-12">
-          <LoadingSpinner size="large" message="Processing your documents..." />
+          <LoadingSpinner size="large" message={processingMessage || "Processing your documents..."} />
+          {processingMessageDetail && (
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-gray-600 text-sm">{processingMessageDetail}</p>
+              {resultsUrl && (
+                <a
+                  href={resultsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 underline text-sm font-medium"
+                >
+                  {resultsUrl}
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );

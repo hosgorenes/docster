@@ -15,6 +15,9 @@ export default function Index() {
   const [currentBatchId, setCurrentBatchId] = useState("");
   const [resultsData, setResultsData] = useState(null);
   const [isreadytoredirect, setIsreadytoredirect] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState(null);
+  const [processingMessageDetail, setProcessingMessageDetail] = useState(null);
+  const [resultsUrl, setResultsUrl] = useState(null);
   const fetcher = useFetcher();
   const navigate = useNavigate();
   const isLoading = fetcher.state === "submitting" || fetcher.state === "loading";
@@ -75,6 +78,10 @@ export default function Index() {
           setIsProcessingPolling(true);
           setIsreadytoredirect(false);
           setResultsData(null);
+          // Store backend messages and URL
+          setProcessingMessage(json.message || "Your results are being processed...");
+          setProcessingMessageDetail(json.messageDetail || "You can view them here when ready:");
+          setResultsUrl(json.resultsUrl || `http://localhost:4000/results/${json.batchId}`);
           return;
         }
 
@@ -171,6 +178,9 @@ export default function Index() {
               data={resultsData || processedData}
               activeTab={activeTab}
               error={error}
+              processingMessage={processingMessage}
+              processingMessageDetail={processingMessageDetail}
+              resultsUrl={resultsUrl}
             />
           )}
         </div>

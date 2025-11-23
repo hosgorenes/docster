@@ -38,13 +38,33 @@ export default function ResultsViewer({ data, format }) {
   };
 
   // Extract the correct data based on format
-  const displayData = data && data[format] ? data[format] : null;
+  const displayData = data && data[format] !== undefined ? data[format] : null;
 
-  if (!displayData) {
+  // Debug log
+  console.log("ResultsViewer:", {
+    format,
+    hasData: !!data,
+    dataKeys: data ? Object.keys(data) : [],
+    displayData: displayData ? (Array.isArray(displayData) ? `Array(${displayData.length})` : typeof displayData) : null,
+    displayDataSample: Array.isArray(displayData) ? displayData.slice(0, 1) : displayData?.substring?.(0, 50)
+  });
+
+  if (displayData === null || displayData === undefined) {
     return (
       <div className="flex flex-col items-center gap-6 py-12">
         <p className="text-gray-500">
           No data available for {format.toUpperCase()} format
+        </p>
+      </div>
+    );
+  }
+
+  // Handle empty array case - show message but allow viewing
+  if (Array.isArray(displayData) && displayData.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-6 py-12">
+        <p className="text-gray-500">
+          No data extracted (empty array)
         </p>
       </div>
     );

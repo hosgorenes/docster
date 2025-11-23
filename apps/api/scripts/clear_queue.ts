@@ -1,5 +1,6 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
+import logger from "../src/lib/logger";
 
 async function main() {
     const connection = new IORedis({
@@ -13,13 +14,13 @@ async function main() {
 
     // Remove all jobs and related data keys
     await q.obliterate({ force: true });
-    console.log("✅ BullMQ 'documentQueue' obliterated (all jobs cleared)");
+    logger.info("✅ BullMQ 'documentQueue' obliterated (all jobs cleared)");
 
     await connection.quit();
 }
 
 main().catch((e) => {
-    console.error(e);
+    logger.error(e);
     process.exit(1);
 });
 

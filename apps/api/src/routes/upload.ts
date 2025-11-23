@@ -10,7 +10,6 @@ import {
 } from "docster-profiles";
 
 export async function registerUploadRoute(app: FastifyInstance) {
-    // Multipart parser plugin (enables file uploading)
     app.register(multipart, {
         limits: {
             fileSize: 10 * 1024 * 1024, // 10 MB
@@ -23,7 +22,7 @@ export async function registerUploadRoute(app: FastifyInstance) {
         // Create a unique batchId for each upload request
         const batchId = createId().slice(0, 8);
 
-        const parts = req.parts(); // read form-data parts
+        const parts = req.parts();
         const files: { buffer: Buffer; filename: string; mimetype?: string }[] = [];
         const fields: Record<string, unknown> = {};
 
@@ -101,10 +100,12 @@ export async function registerUploadRoute(app: FastifyInstance) {
         }
 
         // Return results to frontend
+        const resultsUrl = `${req.protocol}://${req.hostname}:${5173}/results/${batchId}`;
         return reply.send({
             success: true,
-            message: `${files.length} file(s) queued for processing.`,
-            profileUsed: profile?.profileName || profileName,
+            message: "Your results are being processed...",
+            messageDetail: "You can view them here when ready:",
+            resultsUrl,
             batchId,
         });
     });

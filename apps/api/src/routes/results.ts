@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { eq } from "drizzle-orm";
 import { json2csv } from "json-2-csv";
+import logger from "../lib/logger";
 import { db } from "../utils/db";
 import { jobsTable } from "../schema";
 import { BatchIdSchema } from "../types";
@@ -41,6 +42,26 @@ export async function registerResultsRoute(app: FastifyInstance) {
                     });
                 }
 
+                // Check if all jobs are completed or failed
+                const allJobsFinished = rows.every(
+                    (row) => row.status === "completed" || row.status === "failed"
+                );
+
+                // If jobs are still processing, return waiting message
+                if (!allJobsFinished) {
+                    return reply.code(200).send({
+                        success: true,
+                        batchId,
+                        message: "Your files are still being processed",
+                        status: "processing",
+                        jobCount: rows.length,
+                        completedCount: rows.filter((r) => r.status === "completed").length,
+                        failedCount: rows.filter((r) => r.status === "failed").length,
+                        waitingCount: rows.filter((r) => r.status === "waiting").length,
+                    });
+                }
+
+                // All jobs finished, return results
                 const combinedJson: unknown[] = [];
                 for (const row of rows) {
                     if (!row.output) continue;
@@ -50,7 +71,7 @@ export async function registerResultsRoute(app: FastifyInstance) {
                             combinedJson.push(...parsedOutput);
                         }
                     } catch (parseErr) {
-                        console.error(
+                        logger.error(
                             `Error parsing job output for job ${row.jobId}:`,
                             parseErr
                         );
@@ -64,7 +85,7 @@ export async function registerResultsRoute(app: FastifyInstance) {
                             ? await json2csv(combinedJson as object[])
                             : "";
                 } catch (csvErr) {
-                    console.error(
+                    logger.error(
                         "Error converting combined results to CSV:",
                         csvErr
                     );
@@ -86,7 +107,7 @@ export async function registerResultsRoute(app: FastifyInstance) {
                     ),
                 });
             } catch (err) {
-                console.error("❌ Error fetching batch results:", err);
+                logger.error("❌ Error fetching batch results:", err);
                 return reply.code(500).send({
                     success: false,
                     error: "Internal server error while fetching batch results.",
