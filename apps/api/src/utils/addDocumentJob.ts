@@ -10,6 +10,7 @@ import logger from "../lib/logger";
 export async function addDocumentJob(
     fileBuffer: Buffer,
     fileName: string,
+    fileType: string,
     userEmail: string,
     profileName: Profile = "statement",
     batchId: BatchId
@@ -25,6 +26,7 @@ export async function addDocumentJob(
         jobId,
         batchId,
         fileName,
+        fileType,
         userEmail,
         fileUrl,
         status: "waiting",
@@ -35,7 +37,7 @@ export async function addDocumentJob(
     logger.info("📤 Queuing document for AI processing:", { jobId, fileName });
     await docQueue.add(
         "processDocument", // same name as defined in worker.ts
-        { jobId, fileUrl, userEmail, profileName, batchId, fileName, objectName },
+        { jobId, fileUrl, userEmail, profileName, batchId, fileName, objectName, fileType },
         { jobId }
     );
 

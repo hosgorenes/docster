@@ -5,6 +5,7 @@ export const jobsTable = sqliteTable("jobs", {
     jobId: text("job_id").primaryKey(),
     batchId: text("batch_id").notNull(),
     fileName: text("file_name").notNull(),
+    fileType: text("file_type").notNull(),
     userEmail: text("user_email").notNull(),
     fileUrl: text("file_url"),
     status: text("status").notNull(),

@@ -11,8 +11,7 @@ export default function ProfileSelector({ value, onChange, disabled = false }) {
                     className={`inline-flex items-center justify-between px-3 py-2 border rounded-md w-[180px] text-sm bg-white ${disabled ? "opacity-50 cursor-not-allowed" : ""
                         }`}
                 >
-                    {/* 👇 burada fallback ekledik */}
-                    <Select.Value placeholder="Select profile...">{value}</Select.Value>
+                    <Select.Value placeholder="Select profile..." />
                     <Select.Icon>
                         <ChevronDownIcon />
                     </Select.Icon>
@@ -20,24 +19,23 @@ export default function ProfileSelector({ value, onChange, disabled = false }) {
 
                 <Select.Content className="bg-white rounded-md shadow-md">
                     <Select.Viewport>
-                        <Select.Item
-                            value="Proposal"
-                            className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
-                        >
-                            Proposal
+
+                        <Select.Item value="Proposal" className="p-2 hover:bg-gray-100 cursor-pointer text-sm">
+                            <Select.ItemText>Proposal</Select.ItemText>
                         </Select.Item>
-                        <Select.Item
-                            value="Statement"
-                            className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
-                        >
-                            Statement
+
+                        <Select.Item value="Statement" className="p-2 hover:bg-gray-100 cursor-pointer text-sm">
+                            <Select.ItemText>Statement</Select.ItemText>
                         </Select.Item>
-                        <Select.Item
-                            value="HVAC"
-                            className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
-                        >
-                            HVAC
+
+                        <Select.Item value="HVAC" className="p-2 hover:bg-gray-100 cursor-pointer text-sm">
+                            <Select.ItemText>HVAC</Select.ItemText>
                         </Select.Item>
+
+                        <Select.Item value="Receipt" className="p-2 hover:bg-gray-100 cursor-pointer text-sm">
+                            <Select.ItemText>Receipt</Select.ItemText>
+                        </Select.Item>
+
                     </Select.Viewport>
                 </Select.Content>
             </Select.Root>

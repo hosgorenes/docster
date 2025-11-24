@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Schemas
-export const ProfileSchema = z.enum(["proposal", "hvac", "statement"]);
+export const ProfileSchema = z.enum(["proposal", "hvac", "statement", "receipt"]);
 
 export const EmailSchema = z
     .string()

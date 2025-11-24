@@ -7,6 +7,7 @@ import {
     Proposal as ProposalProfile,
     HVAC as HVACProfile,
     Statement as StatementProfile,
+    Receipt as ReceiptProfile,
 } from "docster-profiles";
 
 export async function registerUploadRoute(app: FastifyInstance) {
@@ -63,36 +64,50 @@ export async function registerUploadRoute(app: FastifyInstance) {
 
         const { profile: profileName, email: userEmail } = parsed.data;
 
-        // Accept only PDF files (can be extended as needed)
+
+        // Select AI profile (docster-profiles)
+        const profileFactory: Record<string, () => any> = {
+            proposal: () => new ProposalProfile(),
+            hvac: () => new HVACProfile(),
+            statement: () => new StatementProfile(),
+            receipt: () => new ReceiptProfile(),
+        };
+
+        const resolveProfile = (name?: string) => {
+            const factory =
+                profileFactory[name?.toLowerCase() ?? ""] ?? profileFactory.statement;
+            return factory();
+        };
+
+        const profile = resolveProfile(profileName);
+
+        // PROFILE-BASED FILE TYPE VALIDATION
         for (const f of files) {
-            if (f.mimetype && f.mimetype !== "application/pdf") {
+            const mimetype = f.mimetype;
+
+            if (!mimetype) {
                 return reply.code(400).send({
                     success: false,
-                    error: `Invalid file type: ${f.mimetype}`,
+                    error: "File has no mimetype",
+                });
+            }
+
+            // profile.acceptedFileTypes check
+            if (!profile.acceptedFileTypes.includes(mimetype)) {
+                return reply.code(400).send({
+                    success: false,
+                    error: `Invalid file type for profile '${profileName}'. Allowed types: ${profile.acceptedFileTypes.join(
+                        ", "
+                    )}`,
                 });
             }
         }
-
-        // Select AI profile (docster-profiles)
-        let profile: any;
-        switch (profileName.toLowerCase()) {
-            case "proposal":
-                profile = new ProposalProfile();
-                break;
-            case "hvac":
-                profile = new HVACProfile();
-                break;
-            case "statement":
-            default:
-                profile = new StatementProfile();
-                break;
-        }
-
         // Add each file to the queue
         for (const f of files) {
             await addDocumentJob(
                 f.buffer,
                 f.filename,
+                f.mimetype ?? "application/pdf",
                 userEmail,
                 profileName,
                 batchId

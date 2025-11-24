@@ -8,6 +8,13 @@
       "when": 1762349581906,
       "tag": "0000_strange_sir_ram",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1763938608426,
+      "tag": "0001_shiny_eternity",
+      "breakpoints": true
     }
   ]
 }

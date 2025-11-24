@@ -2,6 +2,28 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams } from "@remix-run/react";
 import { Header, Sidebar, TabNavigation, ResultsPanel } from "../components";
 
+const BATCH_PROFILE_KEY_PREFIX = "docster:batchProfile:";
+
+const getStoredBatchProfile = (batchId) => {
+    if (!batchId || typeof window === "undefined") return null;
+    try {
+        return window.localStorage.getItem(`${BATCH_PROFILE_KEY_PREFIX}${batchId}`);
+    } catch {
+        return null;
+    }
+};
+
+const normalizeProfileLabel = (profile) => {
+    if (!profile) return null;
+    const map = {
+        proposal: "Proposal",
+        hvac: "HVAC",
+        receipt: "Receipt",
+        statement: "Statement",
+    };
+    return map[profile.toLowerCase()] ?? "Statement";
+};
+
 export default function ResultsByBatch() {
     const { batchId } = useParams();
     const [activeTab, setActiveTab] = useState("json");
@@ -122,6 +144,36 @@ export default function ResultsByBatch() {
             }
         };
     }, [batchId]);
+
+    useEffect(() => {
+        const storedProfile = getStoredBatchProfile(batchId);
+        if (storedProfile) {
+            setSelectedProfile(storedProfile);
+            return;
+        }
+
+        if (jobs.length > 0) {
+            const jobProfile = normalizeProfileLabel(jobs[0]?.profile);
+            if (jobProfile) {
+                setSelectedProfile(jobProfile);
+            }
+        }
+    }, [batchId, jobs]);
+
+    useEffect(() => {
+        const storedProfile = getStoredBatchProfile(batchId);
+        if (storedProfile) {
+            setSelectedProfile(storedProfile);
+            return;
+        }
+
+        if (jobs.length > 0) {
+            const jobProfile = normalizeProfileLabel(jobs[0]?.profile);
+            if (jobProfile) {
+                setSelectedProfile(jobProfile);
+            }
+        }
+    }, [batchId, jobs]);
 
     const hasResults = useMemo(() => {
         // Show results if we have actual data

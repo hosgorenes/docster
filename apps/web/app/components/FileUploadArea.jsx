@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 
-export default function FileUploadArea({ onFileUpload }) {
+export default function FileUploadArea({ onFileUpload, selectedProfile = "Statement" }) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -50,9 +50,17 @@ export default function FileUploadArea({ onFileUpload }) {
     const validFiles = [];
     const maxFileSize = 10 * 1024 * 1024; // 10MB limit
 
+    // Define accepted file types based on profile
+    const acceptedTypes = selectedProfile === "Receipt"
+      ? ["application/pdf", "image/png", "image/jpeg", "image/jpg"]
+      : ["application/pdf"];
+
     for (const file of files) {
-      if (file.type !== "application/pdf") {
-        alert(`"${file.name}" is not a PDF file and will be ignored.`);
+      if (!acceptedTypes.includes(file.type)) {
+        const allowedTypes = selectedProfile === "Receipt"
+          ? "PNG, JPEG, or PDF"
+          : "PDF";
+        alert(`"${file.name}" is not a valid file type. Please upload ${allowedTypes} files.`);
         continue;
       }
 
@@ -92,11 +100,17 @@ export default function FileUploadArea({ onFileUpload }) {
         <div className="flex max-w-[480px] flex-col items-center gap-2">
           <p className="text-[#101518] text-lg font-bold leading-tight tracking-[-0.015em] max-w-[480px] text-center">
             {isDragging
-              ? "Drop your PDF files here"
-              : "Drag and drop PDF files here"}
+              ? selectedProfile === "Receipt"
+                ? "Drop your files here (PNG, JPEG, or PDF)"
+                : "Drop your PDF files here"
+              : selectedProfile === "Receipt"
+                ? "Drag and drop files here (PNG, JPEG, or PDF)"
+                : "Drag and drop PDF files here"}
           </p>
           <p className="text-[#101518] text-sm font-normal leading-normal max-w-[480px] text-center">
-            Or click to browse (Max 10MB per file)
+            {selectedProfile === "Receipt"
+              ? "Or click to browse - You can add PNG, JPEG or PDF (Max 10MB per file)"
+              : "Or click to browse (Max 10MB per file)"}
           </p>
         </div>
         <button
@@ -106,14 +120,16 @@ export default function FileUploadArea({ onFileUpload }) {
             handleClick();
           }}
         >
-          <span className="truncate">Upload PDF</span>
+          <span className="truncate">
+            {selectedProfile === "Receipt" ? "Upload Files" : "Upload PDF"}
+          </span>
         </button>
       </div>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf"
+        accept={selectedProfile === "Receipt" ? ".pdf,.png,.jpg,.jpeg" : ".pdf"}
         multiple
         onChange={handleFileSelect}
         className="hidden"

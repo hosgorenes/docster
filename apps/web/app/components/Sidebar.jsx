@@ -44,39 +44,41 @@ export default function Sidebar({
         />
       </div>
 
-      {!readOnly && <FileUploadArea onFileUpload={onFileUpload} />}
+      {!readOnly && <FileUploadArea onFileUpload={onFileUpload} selectedProfile={profile} />}
 
       {files.length > 0 ? (
         <FileList files={files} onRemoveFile={onRemoveFile} />
       ) : (
-        <div className="flex flex-col items-center justify-center py-8 px-4">
-          <div className="text-gray-400 mb-2">
-            <svg
-              className="w-12 h-12"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-              />
-            </svg>
+        !readOnly && (
+          <div className="flex flex-col items-center justify-center py-8 px-4">
+            <div className="text-gray-400 mb-2">
+              <svg
+                className="w-12 h-12"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-sm text-center">
+              No files uploaded yet. Use the upload area above to add {profile === "Receipt" ? "PNG, JPEG, or PDF" : "PDF"} files.
+            </p>
           </div>
-          <p className="text-gray-500 text-sm text-center">
-            No files uploaded yet. Use the upload area above to add PDF files.
-          </p>
-        </div>
+        )
       )}
 
       {!readOnly && (
         <div className="flex px-4 py-3">
           <button
             className={`flex min-w-[84px] max-w-[480px] items-center justify-center overflow-hidden rounded h-10 px-4 flex-1 text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${files.length === 0 || isProcessing
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-[#dce8f3] text-[#101518] cursor-pointer hover:bg-[#c5d8ef]"
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-[#dce8f3] text-[#101518] cursor-pointer hover:bg-[#c5d8ef]"
               }`}
             onClick={onProcessFiles}
             disabled={files.length === 0 || isProcessing}

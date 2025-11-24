@@ -7,6 +7,20 @@ import {
   ResultsPanel,
 } from "../components";
 
+const BATCH_PROFILE_KEY_PREFIX = "docster:batchProfile:";
+
+const saveBatchProfile = (batchId, profile) => {
+  if (!batchId || !profile || typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      `${BATCH_PROFILE_KEY_PREFIX}${batchId}`,
+      profile
+    );
+  } catch {
+    // ignore storage errors
+  }
+};
+
 export default function Index() {
   const [files, setFiles] = useState([]);
   const [activeTab, setActiveTab] = useState("json");
@@ -74,6 +88,7 @@ export default function Index() {
 
       if (json?.success) {
         if (json.batchId) {
+          saveBatchProfile(json.batchId, selectedProfile);
           setCurrentBatchId(json.batchId);
           setIsProcessingPolling(true);
           setIsreadytoredirect(false);

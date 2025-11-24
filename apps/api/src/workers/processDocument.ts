@@ -4,6 +4,7 @@ import {
     Proposal as ProposalProfile,
     HVAC as HVACProfile,
     Statement as StatementProfile,
+    Receipt as ReceiptProfile,
 } from "docster-profiles";
 import logger from "../lib/logger";
 import { getObjectAsBuffer } from "../utils/minio";
@@ -16,6 +17,7 @@ const profileFactory: Record<string, () => any> = {
     proposal: () => new ProposalProfile(),
     hvac: () => new HVACProfile(),
     statement: () => new StatementProfile(),
+    receipt: () => new ReceiptProfile(),
 };
 
 const resolveProfile = (profileName?: string) => {
@@ -26,12 +28,12 @@ const resolveProfile = (profileName?: string) => {
 
 // Main function to process the document
 export async function processDocument(job: Job) {
-    const { fileUrl, profileName, fileName, objectName } = job.data;
+    const { jobId, fileUrl, profileName, fileName, objectName, fileType } = job.data;
 
-    logger.info(`[${job.id}] Processing started.`);
+    logger.info(`[${jobId}] Processing started.`);
 
     try {
-        // 1. Get file as Buffer from MinIO or fallback to axios
+        // Get file as Buffer from MinIO or fallback to axios
         let fileBuffer: Buffer;
 
         if (objectName) {
@@ -44,19 +46,19 @@ export async function processDocument(job: Job) {
 
         const profile = resolveProfile(profileName);
 
-        // 3. Send file to AI
+        // Send file to AI
         const files = [
             {
                 fileBuffer,
-                fileName: fileName || "document.pdf",
-                fileType: "application/pdf",
+                fileName: fileName || "document",
+                fileType: fileType ?? "application/pdf",
             },
         ];
 
         const result = await processDocumentsWithAI(files, profile);
         const outputJson = Array.isArray(result?.json) ? result.json : [];
 
-        // 4. Save AI result to DB
+        // Save AI result to DB
         await db
             .update(jobsTable)
             .set({
@@ -64,14 +66,14 @@ export async function processDocument(job: Job) {
                 output: JSON.stringify(outputJson),
                 finishedAt: Math.floor(Date.now() / 1000),
             })
-            .where(eq(jobsTable.jobId, job.id as unknown as string));
+            .where(eq(jobsTable.jobId, jobId));
 
-        logger.info(`[${job.id}]  Process completed successfully.`);
+        logger.info(`[${jobId}]  Process completed successfully.`);
     } catch (err) {
-        logger.error(`[${job.id}]  Processing failed. Running fallback...`, { error: err as Error });
+        logger.error(`[${jobId}]  Processing failed. Running fallback...`, { error: err as Error });
 
         try {
-            // 5. Fallback mode (if AI or MinIO failed)
+            // Fallback mode (if AI or MinIO failed)
             const profile = resolveProfile(profileName);
 
             const fallbackFiles = [{ fileName: fileName || "unknown.pdf" }] as any;
@@ -87,20 +89,20 @@ export async function processDocument(job: Job) {
                     output: JSON.stringify(fallbackJson),
                     finishedAt: Math.floor(Date.now() / 1000),
                 })
-                .where(eq(jobsTable.jobId, job.id as unknown as string));
+                .where(eq(jobsTable.jobId, jobId));
 
-            logger.warn(`[${job.id}] ⚠️ Fallback completed.`);
+            logger.warn(`[${jobId}] ⚠️ Fallback completed.`);
         } catch (_fallbackErr) {
-            // 6. Even fallback failed → mark as failed
+            // Even fallback failed → mark as failed
             await db
                 .update(jobsTable)
                 .set({
                     status: "failed",
                     finishedAt: Math.floor(Date.now() / 1000),
                 })
-                .where(eq(jobsTable.jobId, job.id as unknown as string));
+                .where(eq(jobsTable.jobId, jobId));
 
-            logger.error(`[${job.id}] ❌ Both main and fallback failed.`);
+            logger.error(`[${jobId}] ❌ Both main and fallback failed.`);
         }
     }
 }
