@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useFetcher, useNavigate } from "@remix-run/react";
+import { useFetcher, useNavigate, useLoaderData } from "@remix-run/react";
+import { json } from "@remix-run/node";
 import {
   Header,
   Sidebar,
@@ -8,6 +9,12 @@ import {
 } from "../components";
 
 const BATCH_PROFILE_KEY_PREFIX = "docster:batchProfile:";
+
+export async function loader() {
+  return json({
+    apiBaseUrl: process.env.DOCSTER_API_BASE_URL || "http://localhost:4000",
+  });
+}
 
 const saveBatchProfile = (batchId, profile) => {
   if (!batchId || !profile || typeof window === "undefined") return;
@@ -22,6 +29,7 @@ const saveBatchProfile = (batchId, profile) => {
 };
 
 export default function Index() {
+  const { apiBaseUrl } = useLoaderData();
   const [files, setFiles] = useState([]);
   const [activeTab, setActiveTab] = useState("json");
   const [selectedProfile, setSelectedProfile] = useState("Statement");
@@ -79,10 +87,8 @@ export default function Index() {
     });
     formData.append("profile", selectedProfile.toLowerCase());
 
-    const apiBase = process.env.DOCSTER_API_BASE_URL ?? "http://localhost:4000";
-
     try {
-      const res = await fetch(`${apiBase}/upload`, {
+      const res = await fetch(`${apiBaseUrl}/upload`, {
         method: "POST",
         body: formData,
       });
@@ -103,7 +109,7 @@ export default function Index() {
             json.messageDetail || "You can view them here when ready:"
           );
           setResultsUrl(
-            json.resultsUrl || `${apiBase}/results/${json.batchId}`
+            json.resultsUrl || `${apiBaseUrl}/results/${json.batchId}`
           );
           return;
         }
@@ -122,11 +128,9 @@ export default function Index() {
   useEffect(() => {
     if (!isProcessingPolling || !currentBatchId) return;
 
-    const apiBase = process.env.DOCSTER_API_BASE_URL ?? "http://localhost:4000";
-
     const fetchResults = async () => {
       try {
-        const res = await fetch(`${apiBase}/results/${currentBatchId}`);
+        const res = await fetch(`${apiBaseUrl}/results/${currentBatchId}`);
         const json = await res.json();
 
         if (json?.success && Array.isArray(json.jobs)) {
@@ -166,7 +170,7 @@ export default function Index() {
     fetchResults();
     const intervalId = setInterval(fetchResults, 10000);
     return () => clearInterval(intervalId);
-  }, [isProcessingPolling, currentBatchId]);
+  }, [isProcessingPolling, currentBatchId, apiBaseUrl]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);

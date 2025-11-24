@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useParams } from "@remix-run/react";
+import { useParams, useLoaderData } from "@remix-run/react";
+import { json } from "@remix-run/node";
 import { Header, Sidebar, TabNavigation, ResultsPanel } from "../components";
 
 const BATCH_PROFILE_KEY_PREFIX = "docster:batchProfile:";
+
+export async function loader() {
+    return json({
+        apiBaseUrl: process.env.DOCSTER_API_BASE_URL || "http://localhost:4000",
+    });
+}
 
 const getStoredBatchProfile = (batchId) => {
     if (!batchId || typeof window === "undefined") return null;
@@ -25,6 +32,7 @@ const normalizeProfileLabel = (profile) => {
 };
 
 export default function ResultsByBatch() {
+    const { apiBaseUrl } = useLoaderData();
     const { batchId } = useParams();
     const [activeTab, setActiveTab] = useState("json");
     const [isLoading, setIsLoading] = useState(true);
@@ -37,12 +45,10 @@ export default function ResultsByBatch() {
     const intervalRef = useRef(null);
 
     useEffect(() => {
-        const apiBase = process.env.DOCSTER_API_BASE_URL ?? "http://localhost:4000";
-
         async function fetchResults() {
             setIsLoading(true);
             try {
-                const res = await fetch(`${apiBase}/results/${batchId}`);
+                const res = await fetch(`${apiBaseUrl}/results/${batchId}`);
                 const json = await res.json();
 
                 if (json?.success) {
@@ -143,7 +149,7 @@ export default function ResultsByBatch() {
                 intervalRef.current = null;
             }
         };
-    }, [batchId]);
+    }, [batchId, apiBaseUrl]);
 
     useEffect(() => {
         const storedProfile = getStoredBatchProfile(batchId);

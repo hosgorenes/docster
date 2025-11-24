@@ -18,11 +18,12 @@ logs
 _.log
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
-# dotenv environment variable files
+# dotenv environment variable files (keep sample visible)
 .env.local*
 .env.development*
 .env.production*
 .env.test*
+.env
 .env.*
 *.env
 *.env.*
