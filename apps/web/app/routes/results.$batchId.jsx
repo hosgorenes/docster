@@ -37,7 +37,7 @@ export default function ResultsByBatch() {
     const intervalRef = useRef(null);
 
     useEffect(() => {
-        const apiBase = "http://localhost:4000";
+        const apiBase = process.env.DOCSTER_API_BASE_URL ?? "http://localhost:4000";
 
         async function fetchResults() {
             setIsLoading(true);

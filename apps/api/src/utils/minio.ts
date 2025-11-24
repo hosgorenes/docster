@@ -4,10 +4,14 @@ import logger from '../lib/logger';
 
 export const bucketName = process.env.MINIO_BUCKET_NAME || 'sourcefiles';
 
+const minioEndpoint = process.env.MINIO_ENDPOINT || "localhost";
+const minioPort = Number(process.env.MINIO_PORT) || 9000;
+const minioUseSSL = process.env.MINIO_USE_SSL === "true";
+
 export const minioClient = new Client({
-    endPoint: process.env.MINIO_ENDPOINT || "localhost",
-    port: Number(process.env.MINIO_PORT) || 9000,
-    useSSL: false,
+    endPoint: minioEndpoint,
+    port: minioPort,
+    useSSL: minioUseSSL,
     accessKey: process.env.MINIO_ACCESS_KEY || "minioadmin",
     secretKey: process.env.MINIO_SECRET_KEY || "minioadmin",
 });
@@ -31,8 +35,10 @@ export async function uploadToMinio(
     try {
         const stream = Readable.from(fileBuffer);
         await minioClient.putObject(bucketName, objectName, stream);
-        const fileUrl = `http://${process.env.MINIO_ENDPOINT || "localhost"}:${process.env.MINIO_PORT || 9000
-            }/${bucketName}/${objectName}`;
+        const baseUrl =
+            process.env.MINIO_PUBLIC_URL ||
+            `${minioUseSSL ? "https" : "http"}://${minioEndpoint}:${minioPort}`;
+        const fileUrl = `${baseUrl}/${bucketName}/${objectName}`;
         logger.info(`✅ Uploaded to MinIO: ${objectName}`);
         return fileUrl;
     } catch (err) {

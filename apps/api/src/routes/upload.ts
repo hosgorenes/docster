@@ -115,7 +115,8 @@ export async function registerUploadRoute(app: FastifyInstance) {
         }
 
         // Return results to frontend
-        const resultsUrl = `${req.protocol}://${req.hostname}:${5173}/results/${batchId}`;
+        const appBaseUrl = process.env.DOCSTER_APP_BASE_URL || "http://localhost:5173";
+        const resultsUrl = `${appBaseUrl}/results/${batchId}`;
         return reply.send({
             success: true,
             message: "Your results are being processed...",

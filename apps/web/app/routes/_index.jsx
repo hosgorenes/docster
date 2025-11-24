@@ -79,8 +79,10 @@ export default function Index() {
     });
     formData.append("profile", selectedProfile.toLowerCase());
 
+    const apiBase = process.env.DOCSTER_API_BASE_URL ?? "http://localhost:4000";
+
     try {
-      const res = await fetch("http://localhost:4000/upload", {
+      const res = await fetch(`${apiBase}/upload`, {
         method: "POST",
         body: formData,
       });
@@ -94,9 +96,15 @@ export default function Index() {
           setIsreadytoredirect(false);
           setResultsData(null);
           // Store backend messages and URL
-          setProcessingMessage(json.message || "Your results are being processed...");
-          setProcessingMessageDetail(json.messageDetail || "You can view them here when ready:");
-          setResultsUrl(json.resultsUrl || `http://localhost:4000/results/${json.batchId}`);
+          setProcessingMessage(
+            json.message || "Your results are being processed..."
+          );
+          setProcessingMessageDetail(
+            json.messageDetail || "You can view them here when ready:"
+          );
+          setResultsUrl(
+            json.resultsUrl || `${apiBase}/results/${json.batchId}`
+          );
           return;
         }
 
@@ -114,7 +122,7 @@ export default function Index() {
   useEffect(() => {
     if (!isProcessingPolling || !currentBatchId) return;
 
-    const apiBase = "http://localhost:4000";
+    const apiBase = process.env.DOCSTER_API_BASE_URL ?? "http://localhost:4000";
 
     const fetchResults = async () => {
       try {
