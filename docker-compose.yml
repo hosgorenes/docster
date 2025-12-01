@@ -7,4 +7,55 @@ services:
     command: start --filter=./**/web -- --production
     restart: unless-stopped
     environment:
-      - GOOGLE_AI_API_KEY
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    container_name: api
+    command: start --filter=./**/api -- --production
+    restart: unless-stopped
+    environment:
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - REDIS_URL=redis://redis:6379
+      - DOCSTER_API_BASE_URL=${DOCSTER_API_BASE_URL}
+      - DOCSTER_APP_BASE_URL=${DOCSTER_APP_BASE_URL}
+
+    depends_on:
+      - redis
+      - minio
+    ports:
+      - "4000:4000"
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
+    volumes:
+      - ./data/minio:/data
