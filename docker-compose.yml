@@ -4,10 +4,12 @@ services:
       context: .
       dockerfile: ./apps/web/Dockerfile
     container_name: web
-    command: start --filter=./**/web -- --production
     restart: unless-stopped
     environment:
       - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+      - DOCSTER_API_BASE_URL=http://localhost:4000
+      - DOCSTER_APP_BASE_URL=http://localhost:3000
+      - NODE_ENV=production
     depends_on:
       - api
     ports:
@@ -18,18 +20,28 @@ services:
       context: .
       dockerfile: ./apps/api/Dockerfile
     container_name: api
-    command: start --filter=./**/api -- --production
     restart: unless-stopped
     environment:
+      - NODE_ENV=production
       - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+      - DOCSTER_APP_BASE_URL=http://localhost:3000
+
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
+
+      # MinIO
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
-      - REDIS_URL=redis://redis:6379
-      - DOCSTER_API_BASE_URL=${DOCSTER_API_BASE_URL}
-      - DOCSTER_APP_BASE_URL=${DOCSTER_APP_BASE_URL}
+      - MINIO_BUCKET_NAME=documents
+      - MINIO_PUBLIC_URL=http://minio:9000
+      - MINIO_USE_SSL=false
+    volumes:
+      # Share SQLite DB file between host and container
+      - ./apps/api/sqlite.db:/app/apps/api/sqlite.db
 
     depends_on:
       - redis
@@ -37,25 +49,57 @@ services:
     ports:
       - "4000:4000"
 
+  worker:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    container_name: worker
+    restart: unless-stopped
+    command: ["bun", "run", "apps/api/src/worker.ts"]
+    environment:
+      - NODE_ENV=production
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
+
+      # MinIO
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_BUCKET_NAME=documents
+      - MINIO_PUBLIC_URL=http://minio:9000
+      - MINIO_USE_SSL=false
+
+      # URLs
+      - DOCSTER_API_BASE_URL=http://localhost:4000
+    volumes:
+      # Use the same SQLite DB file as the api service
+      - ./apps/api/sqlite.db:/app/apps/api/sqlite.db
+    depends_on:
+      - redis
+      - minio
+      - api
+
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: redis
+    command: redis-server --appendonly yes
+    restart: unless-stopped
     ports:
       - "6379:6379"
-    restart: unless-stopped
-    volumes:
-      - ./data/redis:/data
 
   minio:
     image: minio/minio:latest
     container_name: minio
     command: server /data --console-address ":9001"
+    restart: unless-stopped
     ports:
       - "9000:9000"
       - "9001:9001"
-    restart: unless-stopped
     environment:
       - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
-    volumes:
-      - ./data/minio:/data

@@ -1,22 +1,27 @@
 FROM oven/bun:1 AS install
-
 WORKDIR /app
 
-COPY . .
+RUN apt-get update && apt-get install -y python3 build-essential
+
+COPY package.json turbo.json bun.lock ./
+COPY packages ./packages
+COPY apps/api ./apps/api
+COPY apps/web/app/lib ./apps/web/app/lib
 
 RUN bun install
-RUN bun turbo build
+RUN bun turbo build --filter=./apps/api || echo "no api build step"
 
-FROM install AS run
-
+FROM oven/bun:1 AS run
 WORKDIR /app
 
 COPY --from=install /app/turbo.json .
 COPY --from=install /app/package.json .
-COPY --from=install /app/apps/api/dist apps/api/dist
-
-LABEL org.opencontainers.source=https://github.com/gokceno/docster/
+COPY --from=install /app/node_modules ./node_modules
+COPY --from=install /app/apps/api ./apps/api
+COPY --from=install /app/apps/web/app/lib ./apps/web/app/lib
+COPY --from=install /app/packages ./packages
+COPY --from=install /app/bun.lock .
 
 EXPOSE 4000
-
-ENTRYPOINT ["bun", "turbo"]
+CMD ["bun", "run", "apps/api/src/index.ts"]
+    
